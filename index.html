@@ -787,7 +787,7 @@
           }
           <Logo onClick={onLogoClick}/>
           <div style={{ width:90, textAlign:"right" }}>
-            {rightEl || (total > 0 && (
+            {rightEl || (total > 0 && step > 0 && (
               <span style={{ fontSize:12, color:T.textMuted, fontWeight:600, letterSpacing:"0.02em" }}>Шаг {step}/{total}</span>
             ))}
           </div>
@@ -937,84 +937,52 @@
     );
 
     // ═══════════════════════════════════════════════════════════════
-    // ПАНЕЛЬ "БЕГУЩАЯ СУММА"
+    // ПАНЕЛЬ "ВАШИ ПАРАМЕТРЫ"
     // ═══════════════════════════════════════════════════════════════
-    const SummaryPanel = ({ sel, liveResult, isMobile }) => {
-      const hasData = liveResult && liveResult.grand > 0;
+    const SummaryPanel = ({ sel, isMobile }) => {
       const scopeLabel = { full_repair:"Весь ремонт", selected_stages:"По этапам", not_sure:"Ориентир" }[sel.calculationScope] || "";
       const condLabel  = { new_building:"Новостройка", secondary_normal:"Вторичка",
                            old_full_repair:"Под ремонт", very_bad:"Убитое" }[sel.condition] || "—";
 
       if (isMobile) {
+        const filled = [sel.calculationScope, sel.area, sel.rooms, sel.condition].filter(Boolean);
+        if (filled.length === 0) return null;
         return (
           <div style={{ background:T.bgDark, padding:"10px 20px", display:"flex",
             alignItems:"center", justifyContent:"space-between", gap:12 }}>
-            <div>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:2 }}>
-                Бегущая сумма
-              </div>
-              {hasData ? (
-                <div style={{ display:"flex", alignItems:"baseline", gap:5 }}>
-                  <span style={{ fontSize:15, fontWeight:700, color:"#fff" }}>{fmtK(liveResult.gMin)}</span>
-                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>—</span>
-                  <span style={{ fontSize:15, fontWeight:700, color:T.accent }}>{fmtK(liveResult.gMax)} ₸</span>
-                </div>
-              ) : (
-                <span style={{ fontSize:12, color:"rgba(255,255,255,0.45)", fontStyle:"italic" }}>появится после первого ответа</span>
-              )}
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+              {sel.calculationScope && <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>{scopeLabel}</span>}
+              {sel.area && <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>{sel.area} м²</span>}
+              {sel.rooms && <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>{sel.rooms} комн.</span>}
+              {sel.condition && <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>{condLabel}</span>}
             </div>
-            <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:T.accent }}>
-              <span style={{ width:6, height:6, borderRadius:"50%", background:T.accent, display:"inline-block" }}/>
-              live
-            </div>
+            {sel.selectedStages.length > 0 && (
+              <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", flexShrink:0 }}>
+                {sel.selectedStages.length} этапов
+              </span>
+            )}
           </div>
         );
       }
 
       return (
         <div style={{ background:T.bgDark, borderRadius:T.rLg, padding:24, position:"sticky", top:20, overflow:"hidden" }}>
-          {/* Радиальный градиент — жёлтый глоу у live-индикатора */}
           <div style={{ position:"absolute", top:-60, right:-60, width:240, height:240,
-            background:"radial-gradient(circle, rgba(245,200,66,0.22) 0%, transparent 65%)",
+            background:"radial-gradient(circle, rgba(245,200,66,0.12) 0%, transparent 65%)",
             pointerEvents:"none" }}/>
 
-          <div style={{ position:"relative", display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div style={{ position:"relative", marginBottom:16 }}>
             <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>
-              Бегущая сумма
-            </span>
-            <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:T.accent, fontWeight:600 }}>
-              <span style={{ width:6, height:6, borderRadius:"50%", background:T.accent }}/>live
+              Ваши параметры
             </span>
           </div>
 
-          {hasData ? (
-            <>
-              <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:2 }}>от</div>
-              <div style={{ fontSize:32, fontWeight:900, color:"#fff", lineHeight:1, marginBottom:4 }}>
-                {fmtK(liveResult.gMin)} <span style={{ fontSize:18, fontWeight:500 }}>₸</span>
-              </div>
-              <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:2 }}>до</div>
-              <div style={{ fontSize:32, fontWeight:900, color:T.accent, lineHeight:1, marginBottom:8 }}>
-                {fmtK(liveResult.gMax)} <span style={{ fontSize:18, fontWeight:500, color:"rgba(255,255,255,0.45)" }}>₸</span>
-              </div>
-              {sel.area && (
-                <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:16 }}>
-                  {Math.round(liveResult.grand / Number(sel.area)).toLocaleString("ru-RU")} ₸/м²
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ fontSize:14, color:"rgba(255,255,255,0.35)", fontStyle:"italic", marginBottom:16, lineHeight:1.5 }}>
-              Появится после<br/>первого ответа
-            </div>
-          )}
-
-          <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:14, display:"flex", flexDirection:"column", gap:8 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
             {[
-              ["Путь",     scopeLabel || "—"],
-              ["Площадь",  sel.area ? sel.area+" м²" : "—"],
-              ["Комнат",   sel.rooms || "—"],
-              ["Состояние",sel.condition ? condLabel : "—"],
+              ["Путь",      scopeLabel || "—"],
+              ["Площадь",   sel.area ? sel.area+" м²" : "—"],
+              ["Комнат",    sel.rooms || "—"],
+              ["Состояние", sel.condition ? condLabel : "—"],
             ].map(([k,v]) => (
               <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{k}</span>
@@ -1022,13 +990,13 @@
               </div>
             ))}
             {sel.selectedStages.length > 0 && (
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:4 }}>
+              <div style={{ fontSize:12, color:T.accent, fontWeight:600, marginTop:2 }}>
                 {sel.selectedStages.length} этапов выбрано
               </div>
             )}
           </div>
 
-          <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:12, marginTop:12 }}>
+          <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:12 }}>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", display:"flex", alignItems:"center", gap:5 }}>
               <Ico d="M8 14A6 6 0 108 2a6 6 0 000 12zm0-4V8m0-3v.5" size={13} stroke="rgba(255,255,255,0.35)"/>
               {CONFIG.localEstimatesCount.toLocaleString("ru-RU")} локальных смет · {currentMonth}
@@ -1040,12 +1008,12 @@
 
     const WizardWrap = ({ children, sel, liveResult, isMobile, animKey }) => (
       <div style={{ minHeight:"100vh", background:T.bgPage }}>
-        {isMobile && <SummaryPanel sel={sel} liveResult={liveResult} isMobile/>}
+        {isMobile && <SummaryPanel sel={sel} isMobile/>}
         <div style={{ maxWidth:960, margin:"0 auto", padding:isMobile?"16px 16px 80px":"28px 24px 80px",
           display: isMobile ? "block" : "grid",
           gridTemplateColumns: "1fr 300px", gap:32 }}>
           <div key={animKey} className="rayo-anim">{children}</div>
-          {!isMobile && <SummaryPanel sel={sel} liveResult={liveResult} isMobile={false}/>}
+          {!isMobile && <SummaryPanel sel={sel} isMobile={false}/>}
         </div>
       </div>
     );
@@ -1278,13 +1246,15 @@
             ) : (
               <Btn onClick={() => onChoose(activeProfile)}>Выбрать {activeProfile.name} →</Btn>
             )}
-            <div style={{ textAlign:"center", marginTop:12, display:"flex", justifyContent:"center", gap:24 }}>
-              <button onClick={() => onChoose(CONFIG.independent)} style={{ fontSize:13, color:T.textSub,
-                background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:12 }}>
+              <button onClick={() => onChoose(CONFIG.independent)} style={{
+                width:"100%", padding:"13px 24px", background:"transparent",
+                border:`1.5px solid ${T.accent}`, borderRadius:T.rBtn,
+                fontSize:14, fontWeight:700, color:T.accent, cursor:"pointer" }}>
                 Оставить заявку
               </button>
               <button onClick={onReset} style={{ fontSize:13, color:T.textMuted, background:"none",
-                border:"none", cursor:"pointer", textDecoration:"underline" }}>
+                border:"none", cursor:"pointer", textDecoration:"underline", textAlign:"center" }}>
                 Начать сначала
               </button>
             </div>
@@ -1685,10 +1655,10 @@
 
             <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr 1fr", gap:12, marginBottom:28 }}>
               {[
-                { val:"full_repair",     steps:"5 шагов", title:"Считаю весь ремонт", sub:"Полная смета по всей квартире" },
-                { val:"selected_stages", steps:"6 шагов", title:"Выбираю этапы сам", sub:"Только нужные работы — кухня, санузел и т.д." },
-                { val:"not_sure",        steps:"5 шагов", title:"Пока не знаю",       sub:"Покажите ориентир — потом уточню" },
-              ].map(({ val, steps, title, sub }) => {
+                { val:"full_repair",     time:"~2 мин",  title:"Считаю весь ремонт", sub:"Полная смета по всей квартире",     recommended:false },
+                { val:"selected_stages", time:"~3 мин",  title:"Выбираю этапы сам",  sub:"Только нужные работы — кухня, санузел и т.д.", recommended:false },
+                { val:"not_sure",        time:"~1 мин",  title:"Пока не знаю",        sub:"Покажите ориентир — потом уточню",  recommended:true },
+              ].map(({ val, time, title, sub, recommended }) => {
                 const active = sel.calculationScope === val;
                 return (
                   <button key={val} className="rayo-scope-card"
@@ -1697,6 +1667,15 @@
                       border:`1.5px solid ${active ? T.text : T.border}`,
                       borderRadius:T.rLg, cursor:"pointer", padding:0, overflow:"hidden",
                       textAlign:"left", position:"relative" }}>
+                    {/* Badge "Рекомендуем" */}
+                    {recommended && (
+                      <div style={{ position:"absolute", top:10, right:10,
+                        background:T.accent, color:T.text, fontSize:9, fontWeight:800,
+                        padding:"3px 8px", borderRadius:T.rPill, textTransform:"uppercase",
+                        letterSpacing:"0.06em" }}>
+                        Рекомендуем
+                      </div>
+                    )}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
                       padding:"18px 16px 10px" }}>
                       <div style={{ width:38, height:38, borderRadius:10,
@@ -1706,7 +1685,7 @@
                         {SCOPE_ICONS[val]}
                       </div>
                       <span style={{ fontSize:10, fontWeight:700, color: active?"#777":T.textMuted,
-                        textTransform:"uppercase", letterSpacing:"0.08em", paddingTop:2 }}>{steps}</span>
+                        textTransform:"uppercase", letterSpacing:"0.08em", paddingTop:2 }}>{time}</span>
                     </div>
                     <div style={{ padding:"0 16px 20px", flex:1, display:"flex", flexDirection:"column" }}>
                       <div style={{ fontSize:14, fontWeight:700, color: active?T.white:T.text,
@@ -1869,13 +1848,13 @@
               Влияет на коэффициент сложности и объём подготовительных работ.
             </p>
             {[
-              ["new_building",    "Новостройка без отделки",         "Чистовая отделка с нуля",      "×1.0"],
-              ["secondary_normal","Вторичка в норм. состоянии",      "Жилая, без явных проблем",     "×1.1"],
-              ["old_full_repair", "Старая квартира под ремонт",      "Нужна капитальная переделка",  "×1.25"],
-              ["very_bad",        "Убитое состояние",                "Всё нужно менять",             "×1.4"],
-            ].map(([val,title,sub,coef]) => (
+              ["new_building",    "Новостройка без отделки",         "Чистовая отделка с нуля"],
+              ["secondary_normal","Вторичка в норм. состоянии",      "Жилая, без явных проблем"],
+              ["old_full_repair", "Старая квартира под ремонт",      "Повышенная сложность работ"],
+              ["very_bad",        "Убитое состояние",                "Максимальный объём подготовки"],
+            ].map(([val,title,sub]) => (
               <OptionRow key={val} icon={COND_ICONS[val]} title={title} sub={sub}
-                right={coef} onClick={() => goCondition(val)} active={sel.condition===val}/>
+                onClick={() => goCondition(val)} active={sel.condition===val}/>
             ))}
           </WizardWrap>
         </div>
