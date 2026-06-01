@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAVIO Calculator — Demo</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ═══════════════════════════════════════════════════════════════
+    // ИНТЕГРАЦИИ — заполните перед деплоем (см. ARCH.md)
+    // ═══════════════════════════════════════════════════════════════
+    const INTEGRATIONS = {
+      telegramBotToken: "8694883948:AAGM2Vd26ZL8XgTkpgzAzC8g6utIF8K6gCw",
+      telegramChatId:   "8694883948",
+      webhookUrl:       "",   // Make / n8n webhook (опционально)
+      googleSheetsUrl:  "https://script.google.com/macros/s/AKfycbzrHt3qbIRXSolESxMHk-Idqwyxe6TKWdNWxhA4LlCYhWX6m95h2_JFLg9kDWTcnlG7/exec",
+      emailEndpoint:    "",   // ← EmailJS или свой backend (см. ARCH.md)
+      mainSiteUrl:      "/",  // ← URL главного сайта после деплоя
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ДИЗАЙН-ТОКЕНЫ  (источник: Claude Design export)
+    // ═══════════════════════════════════════════════════════════════
+    const T = {
+      accent:      "#F5C842",
+      accentHover: "#E8BA20",
+      accentText:  "#5C4200",
+      accentLight: "#FFFBE8",
+      bgPage:      "#FAF9F7",
+      bgCard:      "#FFFFFF",
+      bgDark:      "#1E2028",
+      bgDarkSub:   "#252A34",
+      text:        "#1E2028",
+      textSub:     "#6B6B78",
+      textMuted:   "#A2A2AC",
+      white:       "#FFFFFF",
+      border:      "#E8E6E0",
+      borderDark:  "#2E3040",
+      green:       "#2E7D4F",
+      greenLight:  "#E8F5EE",
+      greenText:   "#1A5C35",
+      red:         "#C0392B",
+      redLight:    "#FDECEA",
+      r:           "16px",
+      rLg:         "20px",
+      rBtn:        "12px",
+      rPill:       "999px",
+      font:        "'Manrope', system-ui, sans-serif",
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONFIG — редактируйте здесь цены и подрядчиков (см. ARCH.md)
+    // ═══════════════════════════════════════════════════════════════
+    const CONFIG = {
+      city: "Павлодар",
+      localEstimatesCount: 2480,
+
+      independent: {
+        id: "independent", name: "Независимая оценка",
+        type: "baseline", subtitle: "Рыночный ориентир",
+        services: {
+          demolition:true, wasteRemoval:true, roughWorks:true,
+          electric:true, plumbing:true, bathroom:true,
+          kitchen:true, ceiling:true, floor:true, walls:true,
+        },
+        prices: {
+          demolitionLightM2:  4000,
+          demolitionMediumM2: 8000,
+          demolitionFullM2:   12000,
+          wasteRemovalFixed:  70000,
+          plasteringM2:    2000,
+          screedM2:        3000,
+          selfLevelingM2:  2000,
+          radiatorUnit:   18000,
+          soundproofingM2: 3500,
+          electricOutletPrice:  4500,
+          electricSwitchPrice:  3500,
+          electricLightPrice:   3000,
+          plumbingMeterPartial: 9000,
+          plumbingMeterFull:    15000,
+          plumbingPartialFixed: 250000,
+          plumbingFullFixed:    600000,
+          bathroomCosmeticFixed:   450000,
+          bathroomFullOneFixed:    1200000,
+          bathroomFullTwoFixed:    2200000,
+          kitchenBasicFixed:       500000,
+          kitchenWithApronFixed:   750000,
+          ceilingStretchM2:  4000,
+          ceilingPaintM2:    8000,
+          floorLinoleumM2:   7000,
+          floorLaminateM2:   12000,
+          floorSpcM2:        16000,
+          floorTileM2:       20000,
+          floorLevelingM2:   5000,
+          wallsWallpaperM2:  10000,
+          wallsPaintM2:      14000,
+          wallsDecorativeM2: 22000,
+          wallLevelingM2:    6000,
+          materialsPercent:  0.37,
+        },
+        priceLevel: "mid", rating: null,
+      },
+
+      contractors: [
+        {
+          id: "contractor_1", name: "РемПро",
+          type: "company", subtitle: "Строительная компания",
+          rating: 4.8, priceLevel: "mid",
+          services: {
+            demolition:true, wasteRemoval:false, roughWorks:true,
+            electric:true, plumbing:true, bathroom:true,
+            kitchen:false, ceiling:true, floor:true, walls:true,
+          },
+          prices: {
+            demolitionLightM2:3500, demolitionMediumM2:7500, demolitionFullM2:11000,
+            wasteRemovalFixed:0,
+            plasteringM2:2200, screedM2:3200, selfLevelingM2:2200, radiatorUnit:20000, soundproofingM2:3800,
+            electricOutletPrice:5000, electricSwitchPrice:4000, electricLightPrice:3500,
+            plumbingMeterPartial:10000, plumbingMeterFull:16000,
+            plumbingPartialFixed:270000, plumbingFullFixed:650000,
+            bathroomCosmeticFixed:480000, bathroomFullOneFixed:1300000, bathroomFullTwoFixed:2400000,
+            kitchenBasicFixed:0, kitchenWithApronFixed:0,
+            ceilingStretchM2:4500, ceilingPaintM2:8500,
+            floorLinoleumM2:7000, floorLaminateM2:13000, floorSpcM2:17000, floorTileM2:21000, floorLevelingM2:5500,
+            wallsWallpaperM2:11000, wallsPaintM2:15000, wallsDecorativeM2:23000, wallLevelingM2:6500,
+            materialsPercent:0.35,
+          },
+        },
+        {
+          id: "contractor_2", name: "МастерСтрой",
+          type: "company", subtitle: "Строительная компания",
+          rating: 4.6, priceLevel: "cheap",
+          services: {
+            demolition:true, wasteRemoval:true, roughWorks:true,
+            electric:false, plumbing:true, bathroom:true,
+            kitchen:true, ceiling:true, floor:true, walls:true,
+          },
+          prices: {
+            demolitionLightM2:3800, demolitionMediumM2:7800, demolitionFullM2:11500,
+            wasteRemovalFixed:65000,
+            plasteringM2:1900, screedM2:2800, selfLevelingM2:1900, radiatorUnit:17000, soundproofingM2:3300,
+            electricOutletPrice:0, electricSwitchPrice:0, electricLightPrice:0,
+            plumbingMeterPartial:8000, plumbingMeterFull:13000,
+            plumbingPartialFixed:240000, plumbingFullFixed:580000,
+            bathroomCosmeticFixed:460000, bathroomFullOneFixed:1250000, bathroomFullTwoFixed:2300000,
+            kitchenBasicFixed:480000, kitchenWithApronFixed:720000,
+            ceilingStretchM2:3800, ceilingPaintM2:7800,
+            floorLinoleumM2:6800, floorLaminateM2:11500, floorSpcM2:15500, floorTileM2:19500, floorLevelingM2:4800,
+            wallsWallpaperM2:9500, wallsPaintM2:13500, wallsDecorativeM2:21000, wallLevelingM2:5800,
+            materialsPercent:0.36,
+          },
+        },
+      ],
+
+      coefs: {
+        condition: { new_building:1.00, secondary_normal:1.10, old_full_repair:1.25, very_bad:1.40 },
+        living:    { yes:1.07, no:1.0 },
+        lift:      { yes:1.0,  no:1.03 },
+        plumbingLocation: { sanuzul:1.0, kitchen:0.8, all:1.5, "":1.0 },
+      },
+
+      range: { min:0.90, max:1.15 },
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // РАНЖИРОВАНИЕ
+    // ═══════════════════════════════════════════════════════════════
+    function scoreContractor(c, stages) {
+      const cov = stages.filter(s => c.services[s]).length;
+      const svc = stages.length > 0 ? cov / stages.length : 1;
+      const price = { cheap:0.10, mid:0, premium:-0.05 }[c.priceLevel] || 0;
+      const rat = c.rating ? ((c.rating - 4.0) / 1.0) * 0.10 : 0;
+      return { raw: svc + price + rat, serviceScore: Math.round(svc * 100), covered: cov };
+    }
+    function rankContractors(contractors, stages) {
+      const scored = contractors.map(c => ({ ...c, ...scoreContractor(c, stages) })).sort((a, b) => b.raw - a.raw);
+      const result = []; let i = 0;
+      while (i < scored.length) {
+        let j = i + 1;
+        while (j < scored.length && scored[i].raw - scored[j].raw < 0.05) j++;
+        result.push(...scored.slice(i, j).sort(() => Math.random() - 0.5));
+        i = j;
+      }
+      return result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // РАСЧЁТНЫЙ ДВИЖОК
+    // ═══════════════════════════════════════════════════════════════
+    function calcStage(stage, sel, profile, area) {
+      const p = profile.prices;
+      if (!profile.services[stage]) return { cost: 0, available: false };
+      const sa = sel.stageAreas || {};
+      const zA = sa[stage] && Number(sa[stage]) > 0 ? Number(sa[stage]) : area;
+
+      switch (stage) {
+        case "demolition": {
+          if (!sel.demolition || sel.demolition === "none") return { cost: 0, available: true };
+          const k = { light:"demolitionLightM2", medium:"demolitionMediumM2", full:"demolitionFullM2" }[sel.demolition];
+          return { cost: area * (p[k] || 0), available: true };
+        }
+        case "wasteRemoval":
+          return { cost: sel.wasteRemoval === "yes" ? (p.wasteRemovalFixed || 0) : 0, available: true };
+        case "roughWorks": {
+          const items = sel.roughItems || [];
+          if (items.length === 0) return { cost: 0, available: true };
+          const wallArea = area * 2.6;
+          let roughCost = 0;
+          if (items.includes("plastering"))    roughCost += wallArea * (p.plasteringM2 || 0);
+          if (items.includes("screed"))        roughCost += area * (p.screedM2 || 0);
+          if (items.includes("selfLeveling"))  roughCost += area * (p.selfLevelingM2 || 0);
+          if (items.includes("radiators"))     roughCost += (Number(sel.radiatorCount)||0) * (p.radiatorUnit || 0);
+          if (items.includes("soundproofing")) roughCost += area * (p.soundproofingM2 || 0);
+          return { cost: roughCost, available: true };
+        }
+        case "electric": {
+          const outlets  = Number(sel.electricOutlets)  || 0;
+          const switches = Number(sel.electricSwitches) || 0;
+          const lights   = Number(sel.electricLights)   || 0;
+          const cost = outlets * (p.electricOutletPrice || 4500)
+                     + switches * (p.electricSwitchPrice || 3500)
+                     + lights * (p.electricLightPrice || 3000);
+          return { cost, available: true };
+        }
+        case "plumbing": {
+          if (!sel.plumbing || sel.plumbing === "none") return { cost: 0, available: true };
+          const meters  = Number(sel.plumbingMeters) || 0;
+          const locCoef = CONFIG.coefs.plumbingLocation[sel.plumbingLocation || ""] || 1.0;
+          if (meters > 0) {
+            const rate = sel.plumbing === "partial"
+              ? (p.plumbingMeterPartial || 9000)
+              : (p.plumbingMeterFull || 15000);
+            return { cost: meters * rate * locCoef, available: true };
+          }
+          return { cost: sel.plumbing === "partial" ? (p.plumbingPartialFixed || 0) : (p.plumbingFullFixed || 0), available: true };
+        }
+        case "bathroom": {
+          if (!sel.bathroom || sel.bathroom === "none") return { cost: 0, available: true };
+          const k = { cosmetic:"bathroomCosmeticFixed", full_1:"bathroomFullOneFixed", full_2:"bathroomFullTwoFixed" }[sel.bathroom];
+          return { cost: p[k] || 0, available: true };
+        }
+        case "kitchen":
+          if (!sel.kitchen || sel.kitchen === "none") return { cost: 0, available: true };
+          return { cost: sel.kitchen === "basic" ? (p.kitchenBasicFixed || 0) : (p.kitchenWithApronFixed || 0), available: true };
+        case "ceiling":
+          if (!sel.ceiling || sel.ceiling === "none") return { cost: 0, available: true };
+          return { cost: area * (sel.ceiling === "stretch" ? (p.ceilingStretchM2 || 0) : (p.ceilingPaintM2 || 0)), available: true };
+        case "floor": {
+          if (!sel.floorCovering || sel.floorCovering === "none") return { cost: 0, available: true };
+          const k = { linoleum:"floorLinoleumM2", laminate:"floorLaminateM2", spc:"floorSpcM2", tile:"floorTileM2" }[sel.floorCovering];
+          return { cost: area * (p[k] || 0) + (sel.floorLeveling === "yes" ? area * (p.floorLevelingM2 || 0) : 0), available: true };
+        }
+        case "walls": {
+          if (!sel.walls || sel.walls === "none") return { cost: 0, available: true };
+          const k = { wallpaper:"wallsWallpaperM2", paint:"wallsPaintM2", decorative:"wallsDecorativeM2" }[sel.walls];
+          return { cost: area * (p[k] || 0) + (sel.wallLeveling === "yes" ? area * (p.wallLevelingM2 || 0) : 0), available: true };
+        }
+        default: return { cost: 0, available: true };
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // СРОКИ ЭТАПОВ
+    // ─────────────────────────────────────────────
+    function calcDuration(stage, sel) {
+      const area = Number(sel.area) || 50;
+      switch (stage) {
+        case "demolition": {
+          if (!sel.demolition || sel.demolition === "none") return null;
+          // Лёгкий: обои, плинтуса, плитка
+          // Средний: перегородки, стяжка, мебель
+          // Полный: до бетона, трубы, всё
+          const days = {
+            light:  { min: 1, max: Math.max(2, Math.ceil(area / 25)) },
+            medium: { min: 2, max: Math.max(4, Math.ceil(area / 15)) },
+            full:   { min: 4, max: Math.max(7, Math.ceil(area / 10)) },
+          }[sel.demolition];
+          return days || null;
+        }
+        case "wasteRemoval":
+          return sel.wasteRemoval === "yes" ? { min: 1, max: 1 } : null;
+        case "roughWorks": {
+          const items = sel.roughItems || [];
+          if (items.length === 0) return null;
+          let min = 0, max = 0;
+          if (items.includes("plastering"))   { min += Math.ceil(area * 2.6 / 60); max += Math.ceil(area * 2.6 / 40); }
+          if (items.includes("screed"))       { min += Math.ceil(area / 60); max += Math.ceil(area / 40); }
+          if (items.includes("selfLeveling")) { min += 1; max += 2; }
+          if (items.includes("radiators"))    { min += 1; max += 2; }
+          if (items.includes("soundproofing")){ min += Math.ceil(area / 50); max += Math.ceil(area / 30); }
+          return min > 0 ? { min: Math.max(1, min), max: Math.max(2, max) } : null;
+        }
+        case "electric": {
+          const pts = (Number(sel.electricOutlets)||0) + (Number(sel.electricSwitches)||0) + (Number(sel.electricLights)||0);
+          if (pts === 0) return null;
+          const base = Math.ceil(pts / 12);
+          return { min: Math.max(2, base), max: Math.max(4, base + 2) };
+        }
+        case "plumbing": {
+          if (!sel.plumbing || sel.plumbing === "none") return null;
+          if (sel.plumbing === "partial") return { min: 2, max: 3 };
+          const meters = Number(sel.plumbingMeters) || 0;
+          const base = meters > 0 ? Math.ceil(meters / 8) : 5;
+          return { min: Math.max(3, base), max: Math.max(5, base + 2) };
+        }
+        case "bathroom": {
+          if (!sel.bathroom || sel.bathroom === "none") return null;
+          return { cosmetic: {min:3,max:5}, full_1: {min:10,max:14}, full_2: {min:18,max:25} }[sel.bathroom] || null;
+        }
+        case "kitchen": {
+          if (!sel.kitchen || sel.kitchen === "none") return null;
+          return { basic: {min:3,max:5}, with_apron: {min:4,max:7} }[sel.kitchen] || null;
+        }
+        case "ceiling": {
+          if (!sel.ceiling || sel.ceiling === "none") return null;
+          return { stretch: {min:1,max:2}, paint: {min:3,max:5} }[sel.ceiling] || null;
+        }
+        case "floor": {
+          if (!sel.floorCovering || sel.floorCovering === "none") return null;
+          const base = { linoleum:{min:1,max:2}, laminate:{min:2,max:3}, spc:{min:2,max:3},
+            tile:{min:Math.ceil(area/20)+1, max:Math.ceil(area/15)+2} }[sel.floorCovering];
+          if (!base) return null;
+          if (sel.floorLeveling === "yes") return { min: base.min + 2, max: base.max + 3 };
+          return base;
+        }
+        case "walls": {
+          if (!sel.walls || sel.walls === "none") return null;
+          const wallDays = Math.ceil(area * 2.6 / 50);
+          const base = {
+            wallpaper:   { min: wallDays + 1, max: wallDays + 3 },
+            paint:       { min: wallDays + 2, max: wallDays + 4 },
+            decorative:  { min: wallDays + 5, max: wallDays + 8 },
+          }[sel.walls];
+          if (!base) return null;
+          if (sel.wallLeveling === "yes") return { min: base.min + 4, max: base.max + 6 };
+          return base;
+        }
+        default: return null;
+      }
+    }
+
+    function calcTotalDuration(stages, sel) {
+      let min = 0, max = 0;
+      for (const s of stages) {
+        const d = calcDuration(s, sel);
+        if (d) { min += d.min; max += d.max; }
+      }
+      return min > 0 ? { min, max } : null;
+    }
+
+    function calculateTotal(sel, profile) {
+      const area  = Number(sel.area) || 0;
+      const coef  = (CONFIG.coefs.condition[sel.condition] || 1)
+                  * (CONFIG.coefs.living[sel.isLiving] || 1)
+                  * (CONFIG.coefs.lift[sel.hasLift] || 1);
+      const stages = sel.selectedStages || [];
+      const breakdown = {}; let workTotal = 0;
+
+      for (const s of stages) {
+        const r = calcStage(s, sel, profile, area);
+        const cost = r.available ? Math.round(r.cost * coef) : 0;
+        breakdown[s] = { cost, available: r.available };
+        workTotal += cost;
+      }
+      const matCost = sel.includeMaterials === "yes"
+        ? Math.round(workTotal * (profile.prices.materialsPercent || 0.37)) : 0;
+      const grand = workTotal + matCost;
+      const unavail = stages.filter(s => !profile.services[s]);
+      const compat  = stages.length > 0
+        ? Math.round(stages.filter(s => profile.services[s]).length / stages.length * 100) : 100;
+
+      return {
+        workTotal, matCost, grand,
+        wMin: Math.round(workTotal * CONFIG.range.min),
+        wMax: Math.round(workTotal * CONFIG.range.max),
+        gMin: Math.round(grand * CONFIG.range.min),
+        gMax: Math.round(grand * CONFIG.range.max),
+        breakdown, unavail, compat,
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ИНТЕГРАЦИИ — ФУНКЦИИ ОТПРАВКИ
+    // ═══════════════════════════════════════════════════════════════
+    function fmtTgMsg(lead, sel, result, profile) {
+      const cond = { new_building:"Новостройка", secondary_normal:"Вторичка", old_full_repair:"Под ремонт", very_bad:"Убитое" };
+      const L = { demolition:"Демонтаж", wasteRemoval:"Вывоз мусора", roughWorks:"Черновые",
+                  electric:"Электрика", plumbing:"Сантехника", bathroom:"Санузел",
+                  kitchen:"Кухня", ceiling:"Потолки", floor:"Полы", walls:"Стены" };
+      const stages = sel.selectedStages.map(s => `  — ${L[s]||s}`).join("\n");
+      return `🏗 <b>Новая заявка RAVIO · ${CONFIG.city}</b>\n\n`
+        + `👤 <b>${lead.name}</b> · ${lead.phone}\n`
+        + `📱 ${lead.contact} · ${lead.timing}\n\n`
+        + `📐 ${sel.area} м² · ${sel.rooms} комн. · ${cond[sel.condition]||""}\n`
+        + `🔧 ${sel.calculationScope === "full_repair" ? "Весь ремонт" : sel.calculationScope === "selected_stages" ? "По этапам" : "Ориентир"}\n`
+        + `📋 Этапы:\n${stages}\n\n`
+        + `💰 ${Math.round(result.gMin).toLocaleString("ru-RU")} — ${Math.round(result.gMax).toLocaleString("ru-RU")} ₸\n`
+        + `🤝 ${profile.name} · совм. ${result.compat}%\n`
+        + `🕐 ${new Date().toLocaleString("ru-RU")} · rayo_calc`;
+    }
+
+    async function sendToTelegram(lead, sel, result, profile) {
+      if (!INTEGRATIONS.telegramBotToken || !INTEGRATIONS.telegramChatId) return;
+      try {
+        await fetch(`https://api.telegram.org/bot${INTEGRATIONS.telegramBotToken}/sendMessage`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: INTEGRATIONS.telegramChatId,
+            text: fmtTgMsg(lead, sel, result, profile), parse_mode: "HTML" }),
+        });
+      } catch (e) { console.warn("Telegram:", e); }
+    }
+
+    async function sendToWebhook(payload) {
+      if (!INTEGRATIONS.webhookUrl) return;
+      try { await fetch(INTEGRATIONS.webhookUrl, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }); }
+      catch (e) { console.warn("Webhook:", e); }
+    }
+
+    async function sendToGoogleSheets(payload) {
+      if (!INTEGRATIONS.googleSheetsUrl) return;
+      try {
+        await fetch(INTEGRATIONS.googleSheetsUrl, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, submittedAt: new Date().toISOString() }),
+        });
+      } catch (e) { console.warn("Google Sheets:", e); }
+    }
+
+    async function sendEmail(payload) {
+      const EMAILJS_PUBLIC_KEY  = "E_3YAA754JvtVGrK7";
+      const EMAILJS_SERVICE_ID  = "";   // ← EmailJS Dashboard → Email Services → Service ID
+      const EMAILJS_TEMPLATE_ID = "";   // ← EmailJS Dashboard → Email Templates → Template ID
+      if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) return;
+      try {
+        await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_id:  EMAILJS_SERVICE_ID,
+            template_id: EMAILJS_TEMPLATE_ID,
+            user_id:     EMAILJS_PUBLIC_KEY,
+            template_params: {
+              to_email:   "amdk55@yandex.ru",
+              user_name:  payload.userName,
+              user_phone: payload.userPhone,
+              area:       payload.area,
+              rooms:      payload.rooms,
+              stages:     (payload.selectedStages || []).join(", "),
+              total_min:  (payload.totalMin || 0).toLocaleString("ru-RU"),
+              total_max:  (payload.totalMax || 0).toLocaleString("ru-RU"),
+              contractor: payload.selectedProfileName,
+              date:       new Date().toLocaleString("ru-RU"),
+            },
+          }),
+        });
+      } catch (e) { console.warn("Email:", e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ХЕЛПЕРЫ И КОНСТАНТЫ
+    // ═══════════════════════════════════════════════════════════════
+    const fmt  = n => Math.round(n).toLocaleString("ru-RU") + " ₸";
+    const fmtK = n => n >= 1000000 ? (n/1000000).toFixed(1).replace(".0","") + " млн"
+                                   : Math.round(n/1000) + " тыс";
+    const currentMonth = new Date().toLocaleString("ru-RU", { month:"long" });
+
+    const LABELS = {
+      demolition:"Демонтаж", wasteRemoval:"Вывоз мусора", roughWorks:"Черновые работы",
+      electric:"Электрика", plumbing:"Сантехника", bathroom:"Санузел",
+      kitchen:"Кухня", ceiling:"Потолки", floor:"Полы", walls:"Стены", materials:"Материалы",
+    };
+
+    const STAGE_ORDER = ["demolition","wasteRemoval","roughWorks","electric","plumbing","bathroom","kitchen","ceiling","floor","walls"];
+
+    const PATH_DEFAULTS = {
+      full_repair: {
+        stages: ["demolition","wasteRemoval","roughWorks","electric","plumbing","bathroom","kitchen","ceiling","floor","walls"],
+        sel: { demolition:"medium", wasteRemoval:"yes", roughItems:["plastering","screed"], radiatorCount:"",
+               plumbing:"full", bathroom:"full_1", kitchen:"basic", ceiling:"stretch",
+               floorCovering:"laminate", floorLeveling:"no", walls:"paint", wallLeveling:"no" },
+      },
+      not_sure: {
+        stages: ["electric","bathroom","floor","walls"],
+        sel: { bathroom:"full_1", floorCovering:"laminate", floorLeveling:"no", walls:"paint", wallLeveling:"no" },
+      },
+    };
+
+    function buildMicroSteps(stages) {
+      const steps = [];
+      for (const s of STAGE_ORDER) if (stages.includes(s)) steps.push(s);
+      steps.push("materials");
+      return steps;
+    }
+
+    const INIT_SEL = {
+      calculationScope:"", area:"", rooms:"", isLiving:"no", hasLift:"yes", condition:"",
+      selectedStages:[], includeMaterials:"yes",
+      demolition:"none", wasteRemoval:"no", roughItems:[], radiatorCount:"",
+      electricOutlets:"", electricSwitches:"", electricLights:"",
+      plumbing:"none", plumbingLocation:"", plumbingMeters:"",
+      bathroom:"none", bathroomFixtureType:"",
+      kitchen:"none", ceiling:"none",
+      floorCovering:"none", floorLeveling:"no",
+      walls:"none", wallLeveling:"no",
+      stageAreas:{},
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // SVG ИКОНКИ
+    // ═══════════════════════════════════════════════════════════════
+    const Ico = ({ d, size=16, stroke="currentColor", sw="1.5", fill="none", viewBox="0 0 16 16" }) => (
+      <svg width={size} height={size} viewBox={viewBox} fill={fill} style={{flexShrink:0}}>
+        <path d={d} stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+
+    const STAGE_ICONS = {
+      demolition:   <Ico d="M2 14l4-4m3-7l4 4-3 3-4-4 3-3zM5 11L2 14"/>,
+      wasteRemoval: <Ico d="M3 5h10M6 5V3h4v2M12 5l-1 9H5L4 5m2.5 3v4m3-4v4"/>,
+      roughWorks:   <Ico d="M2 11h3v3H2zm4.5-4h3v3h-3zm4.5 4h3v3h-3zM4.5 7h3V4h-3z"/>,
+      electric:     <Ico d="M9 2L4 9h7l-4 5"/>,
+      plumbing:     <Ico d="M8 2c0 3.5-4 4.5-4 8a4 4 0 008 0C12 6.5 8 5.5 8 2z"/>,
+      bathroom:     <Ico d="M2 9h12M3 9v2a1 1 0 001 1h8a1 1 0 001-1V9M5.5 9V6.5a2.5 2.5 0 015 0V9"/>,
+      kitchen:      <Ico d="M3 4h10v9a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 3h10M6 4V2m4 2V2"/>,
+      ceiling:      <Ico d="M2 4h12v2H2zm3 2v8m3-8v8m3-8v8"/>,
+      floor:        <Ico d="M2 4h12M2 8h12M2 12h12"/>,
+      walls:        <Ico d="M2 2h12v12H2zM2 8h12M8 2v12"/>,
+      materials:    <Ico d="M3 7h10v7H3zM5 7V4a3 3 0 016 0v3"/>,
+    };
+
+    const SCOPE_ICONS = {
+      full_repair:     <Ico d="M3 3h4v4H3zm6 0h4v4h-4zM3 9h4v4H3zm6 0h4v4h-4z" size={22}/>,
+      selected_stages: <Ico d="M3 5h10M3 9h7M3 13h9" size={22}/>,
+      not_sure:        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" strokeWidth="1.5"/><path d="M8.5 8.5a2.5 2.5 0 015 .8c0 1.7-2.5 2.2-2.5 3.7M11 16.5h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+    };
+
+    const COND_ICONS = {
+      new_building:    <Ico d="M3 8h10v7H3zM1 8l7-6 7 6M6 15V10h4v5" size={18} viewBox="0 0 18 18"/>,
+      secondary_normal:<Ico d="M3 15V8l6-5 6 5v7M7 15v-4h4v4" size={18} viewBox="0 0 18 18"/>,
+      old_full_repair: <Ico d="M3 16l3-3m7-7l3-3M6 13l5-5m-5 5l-3 3m8-8l3-3M9 10l-3 3" size={18} viewBox="0 0 18 18"/>,
+      very_bad:        <Ico d="M9 4v5M9 13v.5" size={18} viewBox="0 0 18 18" sw="2"/>,
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ХУКИ
+    // ═══════════════════════════════════════════════════════════════
+    function useIsMobile() {
+      const [m, setM] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
+      useEffect(() => {
+        const fn = () => setM(window.innerWidth < 768);
+        window.addEventListener("resize", fn);
+        return () => window.removeEventListener("resize", fn);
+      }, []);
+      return m;
+    }
+
+    function useStyles() {
+      useEffect(() => {
+        const id = "rayo-global-styles";
+        if (document.getElementById(id)) return;
+        const el = document.createElement("style");
+        el.id = id;
+        el.textContent = `
+          @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Manrope', system-ui, sans-serif; background: #FAF9F7; -webkit-font-smoothing: antialiased; }
+          input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:4px; background:transparent; outline:none; cursor:pointer; }
+          input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:2px; background:#E0DDD6; }
+          input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; background:#F5C842; border-radius:50%; margin-top:-10px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.16); transition:transform .15s; }
+          input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.1); }
+          input[type=range]::-moz-range-track { height:4px; background:#E0DDD6; border-radius:2px; }
+          input[type=range]::-moz-range-progress { background:#F5C842; border-radius:2px; }
+          input[type=range]::-moz-range-thumb { width:24px; height:24px; background:#F5C842; border-radius:50%; border:none; cursor:pointer; }
+          input:focus, button:focus { outline:2px solid #F5C842; outline-offset:2px; }
+          input:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline:none; }
+          @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+          @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+          .rayo-anim { animation: fadeUp 0.24s cubic-bezier(.22,.68,0,1.1) both; }
+          .rayo-fade { animation: fadeIn 0.18s ease both; }
+          .rayo-scope-card { transition: box-shadow .18s, transform .18s, border-color .18s; }
+          .rayo-scope-card:hover { box-shadow: 0 6px 24px rgba(30,32,40,.10); transform: translateY(-2px); }
+          .rayo-option-row { transition: background .14s, border-color .14s; }
+          .rayo-option-row:hover:not([data-active="true"]) { border-color: #1E2028 !important; background: #FAFAFA !important; }
+          .rayo-stage-pill { transition: background .14s, border-color .14s; }
+          .rayo-stage-pill:hover:not([data-active="true"]) { border-color: #1E2028 !important; }
+          .rayo-btn-main { transition: background .15s, transform .1s; }
+          .rayo-btn-main:hover:not(:disabled) { background: #E8BA20 !important; }
+          .rayo-btn-main:active:not(:disabled) { transform: scale(0.98); }
+          .rayo-btn-ghost { transition: border-color .14s, color .14s; }
+          .rayo-btn-ghost:hover { border-color: #1E2028 !important; color: #1E2028 !important; }
+          .rayo-contractor-tab { transition: background .14s, border-color .14s; }
+          .rayo-contractor-tab:hover:not([data-active="true"]) { border-color: #1E2028 !important; }
+          .rayo-logo { transition: opacity .15s; }
+          .rayo-logo:hover { opacity: .75; }
+          input[type=number]::-webkit-inner-spin-button,
+          input[type=number]::-webkit-outer-spin-button { opacity:1; }
+        `;
+        document.head.appendChild(el);
+      }, []);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // АТОМЫ
+    // ═══════════════════════════════════════════════════════════════
+    const Logo = ({ onClick }) => (
+      <div onClick={onClick} className={onClick ? "rayo-logo" : ""}
+        style={{ cursor: onClick?"pointer":"default", flexShrink:0, lineHeight:0 }}>
+        <img src="logo.svg" alt="RAVIO" style={{ height:36, display:"block" }}/>
+      </div>
+    );
+
+    const TopBar = ({ step, total, onBack, showBack=true, rightEl, onLogoClick }) => (
+      <div style={{ background:T.bgCard, borderBottom:`2.5px solid ${T.accent}`, position:"sticky", top:0, zIndex:50 }}>
+        <div style={{ maxWidth:960, margin:"0 auto", padding:"0 24px",
+          display:"flex", alignItems:"center", justifyContent:"space-between", height:60 }}>
+          {showBack
+            ? <button onClick={onBack} className="rayo-btn-ghost" style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
+                borderRadius:T.rPill, background:"transparent", border:`1.5px solid ${T.border}`,
+                fontSize:13, fontWeight:600, color:T.text, cursor:"pointer", whiteSpace:"nowrap" }}>← Назад</button>
+            : <div style={{ width:90 }}/>
+          }
+          <Logo onClick={onLogoClick}/>
+          <div style={{ width:90, textAlign:"right" }}>
+            {rightEl || (total > 0 && (
+              <span style={{ fontSize:12, color:T.textMuted, fontWeight:600, letterSpacing:"0.02em" }}>Шаг {step}/{total}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+
+    const StepLabel = ({ label }) => (
+      <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:"0.1em",
+        textTransform:"uppercase", marginBottom:10 }}>{label}</div>
+    );
+
+    const Btn = ({ children, onClick, style={}, disabled=false }) => (
+      <button onClick={onClick} disabled={disabled} className="rayo-btn-main" style={{
+        display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+        padding:"15px 24px", background: disabled ? "#E8E5DE" : T.accent,
+        color: disabled ? T.textMuted : T.text, border:"none", borderRadius:T.rBtn,
+        fontSize:15, fontWeight:700, cursor: disabled ? "not-allowed" : "pointer",
+        width:"100%", letterSpacing:-0.2, ...style,
+      }}>{children}</button>
+    );
+
+    const BtnGhost = ({ children, onClick, style={} }) => (
+      <button onClick={onClick} className="rayo-btn-ghost" style={{
+        padding:"13px 20px", background:"transparent", border:`1.5px solid ${T.border}`,
+        borderRadius:T.rBtn, fontSize:14, fontWeight:600, color:T.textSub,
+        cursor:"pointer", ...style,
+      }}>{children}</button>
+    );
+
+    const BtnOutline = ({ children, onClick, style={} }) => (
+      <button onClick={onClick} className="rayo-btn-ghost" style={{
+        display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+        padding:"13px 20px", background:"transparent", border:`1.5px solid ${T.border}`,
+        borderRadius:T.rBtn, fontSize:14, fontWeight:600, color:T.text,
+        cursor:"pointer", ...style,
+      }}>{children}</button>
+    );
+
+    const MiniProg = ({ current, total }) => (
+      <div style={{ display:"flex", gap:4, marginBottom:16 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <div key={i} style={{ flex:1, height:3, borderRadius:2,
+            background: i < current ? T.accent : i === current ? T.accent+"BB" : "#D4D0C8",
+            transition:"background 0.3s" }}/>
+        ))}
+      </div>
+    );
+
+    const StageHeader = ({ icon, title, subtitle }) => (
+      <div style={{ marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:4 }}>
+          <div style={{ width:40, height:40, borderRadius:10, background:T.accent,
+            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:T.text }}>
+            {icon}
+          </div>
+          <h2 style={{ fontSize:26, fontWeight:900, color:T.text }}>{title}</h2>
+        </div>
+        {subtitle && <p style={{ fontSize:14, color:T.textSub, marginLeft:52 }}>{subtitle}</p>}
+      </div>
+    );
+
+    const StagePill = ({ label, icon, selected, onClick }) => (
+      <button onClick={onClick} data-active={selected} className="rayo-stage-pill" style={{
+        display:"flex", alignItems:"center", gap:10, padding:"12px 14px",
+        borderRadius:T.r, border:`1.5px solid ${selected ? T.text : T.border}`,
+        background: selected ? T.text : T.bgCard, cursor:"pointer",
+        textAlign:"left", width:"100%",
+      }}>
+        <div style={{ width:30, height:30, borderRadius:8, flexShrink:0,
+          background: selected ? T.accent : "#F2F0EA",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          color: selected ? T.text : T.textSub }}>
+          {icon}
+        </div>
+        <span style={{ fontSize:13, fontWeight: selected ? 700 : 500,
+          color: selected ? T.white : T.text, flex:1 }}>{label}</span>
+        {selected && (
+          <div style={{ width:20, height:20, borderRadius:"50%", background:T.accent, flexShrink:0,
+            display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Ico d="M5 9.5l3 3 5-5" size={11} stroke={T.text} sw="2"/>
+          </div>
+        )}
+      </button>
+    );
+
+    const OptionRow = ({ icon, title, sub, onClick, active=false, right=null, iconBg }) => (
+      <button onClick={onClick} data-active={active} className="rayo-option-row" style={{
+        display:"flex", alignItems:"center", gap:12, padding:"14px 16px",
+        background: active ? T.text : T.bgCard,
+        border:`1.5px solid ${active ? T.text : T.border}`,
+        borderRadius:T.r, cursor:"pointer", width:"100%", textAlign:"left",
+        marginBottom:8,
+      }}>
+        <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
+          background: active ? T.accent : iconBg || "#F2F0EA",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          color: active ? T.text : T.textSub, fontSize:15 }}>
+          {icon}
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:14, fontWeight:600, color: active ? T.white : T.text }}>{title}</div>
+          {sub && <div style={{ fontSize:12, color: active ? "#9A9AB0" : T.textSub, marginTop:2 }}>{sub}</div>}
+        </div>
+        {right && <div style={{ color: active ? T.accent : T.textMuted, fontSize:13, fontWeight:700, whiteSpace:"nowrap" }}>{right}</div>}
+        {active && (
+          <div style={{ width:22, height:22, borderRadius:"50%", background:T.accent, flexShrink:0,
+            display:"flex", alignItems:"center", justifyContent:"center", marginLeft:4 }}>
+            <Ico d="M5 9.5l3 3 5-5" size={12} stroke={T.text} sw="2"/>
+          </div>
+        )}
+      </button>
+    );
+
+    const NumInput = ({ label, value, onChange, min=0, max=9999, placeholder="0", suffix="" }) => (
+      <div style={{ display:"flex", flexDirection:"column", gap:5, flex:1 }}>
+        <label style={{ fontSize:12, fontWeight:600, color:T.textSub, textTransform:"uppercase", letterSpacing:"0.05em" }}>
+          {label}
+        </label>
+        <div style={{ display:"flex", alignItems:"center", background:T.bgCard,
+          border:`1.5px solid ${T.border}`, borderRadius:T.r, overflow:"hidden" }}>
+          <input type="number" min={min} max={max} value={value} placeholder={placeholder}
+            onChange={e => onChange(e.target.value)}
+            onFocus={e => e.target.select()}
+            style={{ flex:1, padding:"12px 12px", fontSize:16, fontWeight:700,
+              border:"none", background:"transparent", color:T.text, width:"100%" }}/>
+          {suffix && <span style={{ padding:"0 12px", fontSize:13, color:T.textMuted, whiteSpace:"nowrap" }}>{suffix}</span>}
+        </div>
+      </div>
+    );
+
+    const ZoneInput = ({ value, onChange, placeholder="Площадь этой зоны" }) => (
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16,
+        background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"10px 14px" }}>
+        <Ico d="M3 3h12v12H3zM3 9h12M9 3v12" size={14} stroke={T.textMuted}/>
+        <span style={{ fontSize:13, color:T.textSub, flex:1 }}>{placeholder}</span>
+        <input type="number" min="1" max="500" value={value||""}
+          onChange={e => onChange(e.target.value)}
+          onFocus={e => e.target.select()}
+          placeholder="—"
+          style={{ width:60, padding:"4px 8px", borderRadius:6, border:`1px solid ${T.border}`,
+            fontSize:16, fontWeight:700, textAlign:"center", background:T.bgPage, color:T.text }}/>
+        <span style={{ fontSize:12, color:T.textMuted }}>м²</span>
+        {value && <button onClick={()=>onChange("")} style={{ background:"none", border:"none",
+          cursor:"pointer", color:T.textMuted, fontSize:12, padding:2 }}>✕</button>}
+      </div>
+    );
+
+    // ═══════════════════════════════════════════════════════════════
+    // ПАНЕЛЬ "БЕГУЩАЯ СУММА"
+    // ═══════════════════════════════════════════════════════════════
+    const SummaryPanel = ({ sel, liveResult, isMobile }) => {
+      const hasData = liveResult && liveResult.grand > 0;
+      const scopeLabel = { full_repair:"Весь ремонт", selected_stages:"По этапам", not_sure:"Ориентир" }[sel.calculationScope] || "";
+      const condLabel  = { new_building:"Новостройка", secondary_normal:"Вторичка",
+                           old_full_repair:"Под ремонт", very_bad:"Убитое" }[sel.condition] || "—";
+
+      if (isMobile) {
+        return (
+          <div style={{ background:T.bgDark, padding:"10px 20px", display:"flex",
+            alignItems:"center", justifyContent:"space-between", gap:12 }}>
+            <div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:2 }}>
+                Бегущая сумма
+              </div>
+              {hasData ? (
+                <div style={{ display:"flex", alignItems:"baseline", gap:5 }}>
+                  <span style={{ fontSize:15, fontWeight:700, color:"#fff" }}>{fmtK(liveResult.gMin)}</span>
+                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>—</span>
+                  <span style={{ fontSize:15, fontWeight:700, color:T.accent }}>{fmtK(liveResult.gMax)} ₸</span>
+                </div>
+              ) : (
+                <span style={{ fontSize:12, color:"rgba(255,255,255,0.45)", fontStyle:"italic" }}>появится после первого ответа</span>
+              )}
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:T.accent }}>
+              <span style={{ width:6, height:6, borderRadius:"50%", background:T.accent, display:"inline-block" }}/>
+              live
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ background:T.bgDark, borderRadius:T.rLg, padding:24, position:"sticky", top:20, overflow:"hidden" }}>
+          {/* Радиальный градиент — жёлтый глоу у live-индикатора */}
+          <div style={{ position:"absolute", top:-60, right:-60, width:240, height:240,
+            background:"radial-gradient(circle, rgba(245,200,66,0.22) 0%, transparent 65%)",
+            pointerEvents:"none" }}/>
+
+          <div style={{ position:"relative", display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>
+              Бегущая сумма
+            </span>
+            <span style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:T.accent, fontWeight:600 }}>
+              <span style={{ width:6, height:6, borderRadius:"50%", background:T.accent }}/>live
+            </span>
+          </div>
+
+          {hasData ? (
+            <>
+              <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:2 }}>от</div>
+              <div style={{ fontSize:32, fontWeight:900, color:"#fff", lineHeight:1, marginBottom:4 }}>
+                {fmtK(liveResult.gMin)} <span style={{ fontSize:18, fontWeight:500 }}>₸</span>
+              </div>
+              <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:2 }}>до</div>
+              <div style={{ fontSize:32, fontWeight:900, color:T.accent, lineHeight:1, marginBottom:8 }}>
+                {fmtK(liveResult.gMax)} <span style={{ fontSize:18, fontWeight:500, color:"rgba(255,255,255,0.45)" }}>₸</span>
+              </div>
+              {sel.area && (
+                <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:16 }}>
+                  {Math.round(liveResult.grand / Number(sel.area)).toLocaleString("ru-RU")} ₸/м²
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize:14, color:"rgba(255,255,255,0.35)", fontStyle:"italic", marginBottom:16, lineHeight:1.5 }}>
+              Появится после<br/>первого ответа
+            </div>
+          )}
+
+          <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:14, display:"flex", flexDirection:"column", gap:8 }}>
+            {[
+              ["Путь",     scopeLabel || "—"],
+              ["Площадь",  sel.area ? sel.area+" м²" : "—"],
+              ["Комнат",   sel.rooms || "—"],
+              ["Состояние",sel.condition ? condLabel : "—"],
+            ].map(([k,v]) => (
+              <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{k}</span>
+                <span style={{ fontSize:13, color:v==="—"?"rgba(255,255,255,0.2)":"#fff", fontWeight:600 }}>{v}</span>
+              </div>
+            ))}
+            {sel.selectedStages.length > 0 && (
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:4 }}>
+                {sel.selectedStages.length} этапов выбрано
+              </div>
+            )}
+          </div>
+
+          <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:12, marginTop:12 }}>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", display:"flex", alignItems:"center", gap:5 }}>
+              <Ico d="M8 14A6 6 0 108 2a6 6 0 000 12zm0-4V8m0-3v.5" size={13} stroke="rgba(255,255,255,0.35)"/>
+              {CONFIG.localEstimatesCount.toLocaleString("ru-RU")} локальных смет · {currentMonth}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const WizardWrap = ({ children, sel, liveResult, isMobile, animKey }) => (
+      <div style={{ minHeight:"100vh", background:T.bgPage }}>
+        {isMobile && <SummaryPanel sel={sel} liveResult={liveResult} isMobile/>}
+        <div style={{ maxWidth:960, margin:"0 auto", padding:isMobile?"16px 16px 80px":"28px 24px 80px",
+          display: isMobile ? "block" : "grid",
+          gridTemplateColumns: "1fr 300px", gap:32 }}>
+          <div key={animKey} className="rayo-anim">{children}</div>
+          {!isMobile && <SummaryPanel sel={sel} liveResult={liveResult} isMobile={false}/>}
+        </div>
+      </div>
+    );
+
+    // ═══════════════════════════════════════════════════════════════
+    // ЭКРАН РЕЗУЛЬТАТА
+    // ═══════════════════════════════════════════════════════════════
+    const ResultScreen = ({ sel, rankedContractors, onChoose, onBack, onReset }) => {
+      const [activeId, setActiveId] = useState("independent");
+      const allProfiles = [CONFIG.independent, ...rankedContractors];
+      const indepResult = calculateTotal(sel, CONFIG.independent);
+      const activeProfile = allProfiles.find(p => p.id === activeId) || CONFIG.independent;
+      const activeResult = calculateTotal(sel, activeProfile);
+      const displayStages = sel.selectedStages;
+      const diff = activeProfile.type !== "baseline"
+        ? Math.round((activeResult.grand - indepResult.grand) / indepResult.grand * 100) : 0;
+      const isMobile = useIsMobile();
+      const goMain = () => { window.location.href = INTEGRATIONS.mainSiteUrl; };
+
+      return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <TopBar showBack onBack={onBack} onLogoClick={goMain}
+            rightEl={
+              <button onClick={onReset} style={{ fontSize:13, color:T.textSub, background:"none",
+                border:"none", cursor:"pointer", fontWeight:600 }}>Начать сначала</button>
+            }/>
+          <div style={{ maxWidth:840, margin:"0 auto", padding: isMobile?"16px 16px 80px":"28px 24px 80px" }}
+            className="rayo-anim">
+
+            <div style={{ fontSize:12, color:T.textMuted, marginBottom:8 }}>
+              {CONFIG.city} · {sel.rooms} комн. · {sel.area}м² · {sel.selectedStages.length} этапов
+            </div>
+            <StepLabel label="Результат"/>
+            <h1 style={{ fontSize:isMobile?26:32, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.5 }}>
+              Сравните подрядчиков
+            </h1>
+            <p style={{ fontSize:14, color:T.textSub, marginBottom:20, lineHeight:1.6 }}>
+              Базовая колонка — независимая оценка рынка. Остальные — реальные подрядчики {CONFIG.city}.
+            </p>
+
+            <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:8, marginBottom:20 }}>
+              {allProfiles.map(p => {
+                const r = calculateTotal(sel, p);
+                const isAct = p.id === activeId;
+                return (
+                  <button key={p.id} onClick={() => setActiveId(p.id)} data-active={isAct} className="rayo-contractor-tab" style={{
+                    display:"flex", flexDirection:"column", alignItems:"flex-start",
+                    padding:"12px 16px", minWidth:145, flexShrink:0,
+                    background: isAct ? T.text : T.bgCard,
+                    border:`1.5px solid ${isAct ? T.text : T.border}`,
+                    borderRadius:T.r, cursor:"pointer", transition:"all .15s",
+                  }}>
+                    <div style={{ fontSize:10, color: isAct ? "#888" : T.textMuted, marginBottom:4,
+                      textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                      {p.type === "baseline" ? "Ориентир" : p.subtitle}
+                    </div>
+                    <div style={{ fontSize:13, fontWeight:700, color: isAct ? "#fff" : T.text, marginBottom:4 }}>
+                      {p.name}
+                    </div>
+                    <div style={{ fontSize:17, fontWeight:900, color: isAct ? T.accent : T.text }}>
+                      {fmtK(r.grand)} ₸
+                    </div>
+                    {p.rating && (
+                      <div style={{ fontSize:11, color:"#888", marginTop:3 }}>★ {p.rating}</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 2-колоночный лейаут: левая карточка + правая тёмная панель */}
+            {/* Единая карточка: таблица + тёмный блок внутри */}
+            <div style={{ background:T.bgCard, borderRadius:T.rLg, border:`1px solid ${T.border}`,
+              overflow:"hidden", marginBottom:16 }}>
+
+              {/* Шапка карточки */}
+              <div style={{ padding:isMobile?"16px 16px 12px":"24px 24px 16px" }}>
+                <div style={{ fontSize:13, color:T.textMuted, marginBottom:6 }}>
+                  {activeProfile.type === "baseline" ? `Рыночный ориентир ${CONFIG.city}` : activeProfile.subtitle}
+                </div>
+                <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap", marginBottom:6 }}>
+                  <span style={{ fontSize:13, color:T.textSub }}>от</span>
+                  <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(activeResult.gMin)}</span>
+                  <span style={{ fontSize:14, color:T.textSub }}>—</span>
+                  <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(activeResult.gMax)} ₸</span>
+                </div>
+                {sel.area && (
+                  <div style={{ fontSize:12, color:T.textMuted, marginBottom:12 }}>
+                    {Math.round(activeResult.grand / Number(sel.area)).toLocaleString("ru-RU")} ₸/м² · полная итоговая цена
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {diff !== 0 && (
+                    <span style={{ padding:"5px 12px", borderRadius:T.rPill,
+                      background: diff<0 ? T.greenLight : T.redLight,
+                      color: diff<0 ? T.greenText : T.red, fontSize:12, fontWeight:700 }}>
+                      {diff<0 ? `↓ Дешевле на ${Math.abs(diff)}%` : `↑ Дороже на ${diff}%`}
+                    </span>
+                  )}
+                  {activeProfile.type !== "baseline" && (
+                    <span style={{ padding:"5px 12px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
+                      background: activeResult.compat>=90?T.greenLight:activeResult.compat>=70?"#FFF8E0":T.redLight,
+                      color:      activeResult.compat>=90?T.greenText:activeResult.compat>=70?T.accentText:T.red }}>
+                      ◎ Совместимость {activeResult.compat}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Таблица разбивки */}
+              <div style={{ borderTop:`1px solid ${T.border}`, padding:isMobile?"0 16px":"0 24px" }}>
+                {/* Заголовки колонок */}
+                <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0 6px" }}>
+                  <div style={{ width:20, flexShrink:0 }}/>
+                  <span style={{ flex:1, fontSize:11, fontWeight:700, color:T.textMuted,
+                    textTransform:"uppercase", letterSpacing:"0.08em" }}>Этап</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                    letterSpacing:"0.06em", minWidth:70, textAlign:"right" }}>Срок</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                    letterSpacing:"0.06em", minWidth:85, textAlign:"right" }}>Стоимость</span>
+                </div>
+
+                {displayStages.map((s, i) => {
+                  const it = activeResult.breakdown[s];
+                  const avail = it?.available !== false;
+                  const dur = calcDuration(s, sel);
+                  return (
+                    <div key={s} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
+                      borderTop:`1px solid ${T.border}` }}>
+                      <div style={{ color: avail ? T.textSub : T.textMuted, flexShrink:0, width:20 }}>
+                        {STAGE_ICONS[s] || <Ico d="M4 8h8" size={16}/>}
+                      </div>
+                      <span style={{ flex:1, fontSize:14, color: avail ? T.text : T.textMuted }}>
+                        {LABELS[s]}
+                      </span>
+                      <span style={{ fontSize:12, color:T.textMuted, flexShrink:0, minWidth:70, textAlign:"right" }}>
+                        {dur && avail
+                          ? (dur.min === dur.max ? `${dur.min} дн.` : `${dur.min}–${dur.max} дн.`)
+                          : "—"}
+                      </span>
+                      <span style={{ fontSize:14, fontWeight:600, color: avail ? T.text : T.textMuted,
+                        flexShrink:0, minWidth:85, textAlign:"right" }}>
+                        {!it ? "—" : !avail
+                          ? <span style={{ fontSize:12, color:T.textMuted, fontStyle:"italic" }}>не выполняет</span>
+                          : it.cost > 0 ? fmtK(it.cost)+" ₸" : "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+
+                {sel.includeMaterials === "yes" && activeResult.matCost > 0 && (
+                  <div style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
+                    borderTop:`1px solid ${T.border}` }}>
+                    <div style={{ color:T.textMuted, flexShrink:0, width:20 }}>{STAGE_ICONS.materials}</div>
+                    <span style={{ flex:1, fontSize:14, color:T.textSub }}>Материалы ~</span>
+                    <span style={{ minWidth:70 }}/>
+                    <span style={{ fontSize:14, fontWeight:700, color:T.text, minWidth:85, textAlign:"right" }}>
+                      ~{fmtK(activeResult.matCost)} ₸
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Тёмный блок внутри карточки */}
+              {(() => {
+                const totalDur = calcTotalDuration(displayStages, sel);
+                return (
+                  <div style={{ background:T.bgDark, margin:"0", padding:"20px 24px",
+                    position:"relative", overflow:"hidden" }}>
+                    <div style={{ position:"absolute", top:-60, right:-60, width:220, height:220,
+                      background:"radial-gradient(circle, rgba(245,200,66,0.18) 0%, transparent 65%)",
+                      pointerEvents:"none" }}/>
+
+                    <div style={{ display:isMobile?"block":"flex", gap:32, alignItems:"flex-start" }}>
+                      {/* Левая часть: диапазон */}
+                      <div style={{ flex:1, marginBottom: isMobile?16:0 }}>
+                        <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase",
+                          letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>С учётом погрешности ±15%</div>
+                        <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
+                          <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>мин</span>
+                          <span style={{ fontSize:24, fontWeight:900, color:"#fff" }}>{fmtK(activeResult.gMin)}</span>
+                          <span style={{ fontSize:14, color:"rgba(255,255,255,0.4)" }}>—</span>
+                          <span style={{ fontSize:24, fontWeight:900, color:T.accent }}>{fmtK(activeResult.gMax)}</span>
+                          <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>тыс ₸</span>
+                        </div>
+                      </div>
+
+                      {/* Правая часть: срок */}
+                      {totalDur && (
+                        <div style={{ flexShrink:0 }}>
+                          <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase",
+                            letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>Общий срок</div>
+                          <div style={{ display:"flex", alignItems:"baseline", gap:5 }}>
+                            <span style={{ fontSize:24, fontWeight:900, color:"#fff" }}>{totalDur.min}</span>
+                            <span style={{ fontSize:14, color:"rgba(255,255,255,0.4)" }}>—</span>
+                            <span style={{ fontSize:24, fontWeight:900, color:T.accent }}>{totalDur.max}</span>
+                            <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>раб. дней</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {activeResult.unavail.length > 0 && (
+                      <div style={{ background:"rgba(245,200,66,0.12)", border:"1px solid rgba(245,200,66,0.25)",
+                        borderRadius:T.rBtn, padding:"10px 12px", marginTop:14 }}>
+                        <span style={{ fontSize:12, color:T.accent, fontWeight:600 }}>Не выполняет: </span>
+                        <span style={{ fontSize:12, color:"rgba(245,200,66,0.8)" }}>
+                          {activeResult.unavail.map(s=>LABELS[s]).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div style={{ background:"#FFFDF0", border:`1px solid #E8E0C0`, borderRadius:T.r,
+              padding:"14px 18px", marginBottom:18 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:"#7A5500", marginBottom:4 }}>⚠️ Стоимость ориентировочная</div>
+              <div style={{ fontSize:12, color:"#8A6510", lineHeight:1.6 }}>
+                Точный расчёт формируется после замера квартиры. На итоговую стоимость влияет состояние
+                стен и перекрытий, фактические объёмы и выбор материалов.
+              </div>
+            </div>
+
+            {activeProfile.type === "baseline" ? (
+              <Btn onClick={() => rankedContractors.length > 0 && setActiveId(rankedContractors[0].id)}>
+                Смотреть подрядчиков →
+              </Btn>
+            ) : (
+              <Btn onClick={() => onChoose(activeProfile)}>Выбрать {activeProfile.name} →</Btn>
+            )}
+            <div style={{ textAlign:"center", marginTop:12, display:"flex", justifyContent:"center", gap:24 }}>
+              <button onClick={() => onChoose(CONFIG.independent)} style={{ fontSize:13, color:T.textSub,
+                background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>
+                Оставить заявку
+              </button>
+              <button onClick={onReset} style={{ fontSize:13, color:T.textMuted, background:"none",
+                border:"none", cursor:"pointer", textDecoration:"underline" }}>
+                Начать сначала
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ФОРМА ЗАЯВКИ
+    // ═══════════════════════════════════════════════════════════════
+    // Rate-limit: храним время последних отправок в sessionStorage
+    const RATE_LIMIT_KEY = "rayo_submit_times";
+    const RATE_LIMIT_MAX = 3;   // максимум отправок
+    const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // за 10 минут
+
+    function checkRateLimit() {
+      try {
+        const now = Date.now();
+        const raw = sessionStorage.getItem(RATE_LIMIT_KEY);
+        const times = raw ? JSON.parse(raw).filter(t => now - t < RATE_LIMIT_WINDOW) : [];
+        if (times.length >= RATE_LIMIT_MAX) return false;
+        times.push(now);
+        sessionStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(times));
+        return true;
+      } catch { return true; }
+    }
+
+    const LeadForm = ({ sel, chosenProfile, onSubmit, onBack }) => {
+      const [lead, setLead] = useState({ name:"", phone:"", contact:"whatsapp", timing:"month" });
+      const [errors, setErrors] = useState({});
+      const [consent, setConsent] = useState(false);
+      const [sending, setSending] = useState(false);
+      // Honeypot: скрытое поле — боты его заполняют, люди нет
+      const [honeypot, setHoneypot] = useState("");
+      // Задержка кнопки: активна через 3 сек после загрузки формы
+      const [btnReady, setBtnReady] = useState(false);
+      const result = calculateTotal(sel, chosenProfile);
+      const isMobile = useIsMobile();
+      const goMain = () => { window.location.href = INTEGRATIONS.mainSiteUrl; };
+
+      useEffect(() => {
+        const t = setTimeout(() => setBtnReady(true), 3000);
+        return () => clearTimeout(t);
+      }, []);
+
+      const submit = async () => {
+        // Honeypot: если заполнено — бот, тихо игнорируем
+        if (honeypot) return;
+
+        // Rate limit
+        if (!checkRateLimit()) {
+          setErrors({ form: "Слишком много попыток. Подождите 10 минут и попробуйте снова." });
+          return;
+        }
+
+        const e = {};
+        if (!lead.name || lead.name.trim().length < 2) e.name = "Введите имя";
+        // Валидация телефона: ровно 10–11 цифр, начиная с 7/8/+7
+        const digits = lead.phone.replace(/\D/g, "");
+        if (!digits || digits.length < 10 || digits.length > 12)
+          e.phone = "Введите корректный номер телефона";
+        if (!consent) e.consent = "Необходимо согласие на обработку данных";
+        if (Object.keys(e).length) { setErrors(e); return; }
+        setSending(true);
+        const payload = {
+          userName:lead.name, userPhone:lead.phone, userContact:lead.contact, userTiming:lead.timing,
+          area:sel.area, rooms:sel.rooms, condition:sel.condition,
+          calculationScope:sel.calculationScope, selectedStages:sel.selectedStages,
+          stageAreas:sel.stageAreas,
+          electricOutlets:sel.electricOutlets, electricSwitches:sel.electricSwitches, electricLights:sel.electricLights,
+          plumbingLocation:sel.plumbingLocation, plumbingMeters:sel.plumbingMeters,
+          bathroomFixtureType:sel.bathroomFixtureType, includeMaterials:sel.includeMaterials,
+          selectedProfileId:chosenProfile.id, selectedProfileName:chosenProfile.name,
+          totalMin:result.gMin, totalMax:result.gMax, compatibility:result.compat,
+          unavailableStages:result.unavail,
+          source:"rayo_calculator", calculatedAt:new Date().toISOString(),
+        };
+        console.log("LEAD:", payload);
+        await Promise.all([
+          sendToTelegram(lead, sel, result, chosenProfile),
+          sendToWebhook(payload),
+          sendToGoogleSheets(payload),
+          sendEmail(payload),
+        ]);
+        setSending(false);
+        onSubmit(payload);
+      };
+
+      return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <TopBar showBack onBack={onBack} onLogoClick={goMain} total={0}/>
+          <div style={{ maxWidth:800, margin:"0 auto", padding: isMobile?"16px 16px 80px":"28px 24px 80px",
+            display: isMobile?"block":"grid", gridTemplateColumns:"1fr 280px", gap:28 }} className="rayo-anim">
+
+            <div style={{ background:T.bgCard, borderRadius:T.rLg, padding:isMobile?"20px":"28px",
+              border:`1px solid ${T.border}` }}>
+              <StepLabel label="Заявка"/>
+              <h1 style={{ fontSize:26, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.4 }}>Оставьте контакты</h1>
+              <p style={{ fontSize:14, color:T.textSub, marginBottom:24, lineHeight:1.6 }}>
+                Подрядчик получит ваш полный расчёт и свяжется в течение рабочего дня.
+              </p>
+
+              {/* Honeypot — невидимо для людей, боты заполняют */}
+              <input
+                tabIndex={-1}
+                aria-hidden="true"
+                value={honeypot}
+                onChange={e => setHoneypot(e.target.value)}
+                style={{ position:"absolute", opacity:0, height:0, width:0, pointerEvents:"none" }}
+              />
+
+              {errors.form && (
+                <div style={{ background:T.redLight, border:`1px solid ${T.red}`, borderRadius:T.r,
+                  padding:"10px 14px", fontSize:13, color:T.red, marginBottom:14 }}>
+                  {errors.form}
+                </div>
+              )}
+
+              {[["name","Ваше имя *","Иван","text"],["phone","Телефон *","+7 (___) ___ __ __","tel"]].map(([k,l,ph,t]) => (
+                <div key={k} style={{ marginBottom:16 }}>
+                  <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:6 }}>{l}</label>
+                  <input style={{ width:"100%", padding:"12px 14px", borderRadius:T.r,
+                    border:`1.5px solid ${errors[k]?T.red:T.border}`, fontSize:15,
+                    outline:"none", background:T.bgPage, color:T.text }}
+                    type={t} placeholder={ph} value={lead[k]}
+                    onChange={e => setLead(x => ({...x,[k]:e.target.value}))}/>
+                  {errors[k] && <div style={{ fontSize:12, color:T.red, marginTop:4 }}>{errors[k]}</div>}
+                </div>
+              ))}
+
+              <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:8 }}>
+                Удобный способ связи
+              </label>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:18 }}>
+                {[["whatsapp","WhatsApp"],["telegram","Telegram"],["call","Звонок"]].map(([v,l]) => (
+                  <button key={v} onClick={() => setLead(x => ({...x,contact:v}))} style={{
+                    padding:"10px 8px", borderRadius:T.r, fontSize:13, fontWeight:500, cursor:"pointer",
+                    border:`1.5px solid ${lead.contact===v?T.text:T.border}`,
+                    background: lead.contact===v ? T.text : T.bgCard,
+                    color: lead.contact===v ? T.white : T.text,
+                  }}>{l}</button>
+                ))}
+              </div>
+
+              <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:8 }}>
+                Когда планируете начать?
+              </label>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:22 }}>
+                {[["asap","Как можно скорее"],["month","В течение месяца"],
+                  ["quarter","В этом квартале"],["planning","Пока планирую"]].map(([v,l]) => (
+                <button key={v} onClick={() => setLead(x => ({...x,timing:v}))} style={{
+                  padding:"11px 12px", borderRadius:T.r, fontSize:13, fontWeight:500,
+                  cursor:"pointer", textAlign:"left",
+                  border:`1.5px solid ${lead.timing===v?T.text:T.border}`,
+                  background: lead.timing===v ? T.text : T.bgCard,
+                  color: lead.timing===v ? T.white : T.text,
+                }}>{l}</button>
+                ))}
+              </div>
+
+              <label style={{ display:"flex", gap:10, alignItems:"flex-start",
+                cursor:"pointer", marginBottom: errors.consent ? 4 : 18 }}>
+                <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
+                  style={{ marginTop:2, accentColor:T.accent, width:16, height:16, flexShrink:0 }}/>
+                <span style={{ fontSize:12, color:T.textSub, lineHeight:1.55 }}>
+                  Нажимая «Отправить», вы соглашаетесь на обработку персональных данных
+                  в соответствии с{" "}
+                  <a href="#" style={{ color:T.accent, textDecoration:"underline" }}>
+                    Политикой конфиденциальности
+                  </a>
+                </span>
+              </label>
+              {errors.consent && (
+                <div style={{ fontSize:12, color:T.red, marginBottom:14 }}>{errors.consent}</div>
+              )}
+
+              <Btn onClick={submit} disabled={sending || !btnReady}>
+                {sending ? "Отправляем..." : !btnReady ? "Загрузка..." : "Отправить заявку →"}
+              </Btn>
+              <button onClick={onBack} style={{ display:"block", width:"100%", textAlign:"center",
+                marginTop:12, fontSize:13, color:T.textSub, background:"none", border:"none",
+                cursor:"pointer" }}>← Назад к смете</button>
+            </div>
+
+            <div>
+              <div style={{ background:T.bgDark, borderRadius:T.rLg, padding:20, marginBottom: isMobile?16:0 }}>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>
+                  Ваш расчёт
+                </div>
+                <div style={{ fontSize:14, fontWeight:700, color:T.accent, marginBottom:6 }}>{chosenProfile.name}</div>
+                <div style={{ display:"flex", alignItems:"baseline", gap:5, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>от</span>
+                  <span style={{ fontSize:20, fontWeight:900, color:"#fff" }}>{fmtK(result.gMin)}</span>
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>до</span>
+                  <span style={{ fontSize:20, fontWeight:900, color:T.accent }}>{fmtK(result.gMax)} ₸</span>
+                </div>
+                <div style={{ borderTop:"1px solid #252A34", paddingTop:12, marginTop:12,
+                  display:"flex", flexDirection:"column", gap:6 }}>
+                  {[["Объект", `${sel.area} м² · ${sel.rooms}-комн.`],
+                    ["Этапов", sel.selectedStages.length],
+                    ["Совместимость", calculateTotal(sel,chosenProfile).compat+"%"]].map(([k,v])=>(
+                    <div key={k} style={{ display:"flex", justifyContent:"space-between" }}>
+                      <span style={{ fontSize:12, color:"rgba(255,255,255,0.45)" }}>{k}</span>
+                      <span style={{ fontSize:12, color:"#aaa", fontWeight:600 }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", marginTop:12, lineHeight:1.5 }}>
+                  ⓘ Подрядчик получит полную смету и свяжется в течение дня
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ЭКРАН УСПЕХА
+    // ═══════════════════════════════════════════════════════════════
+    const SuccessScreen = ({ sel, chosen, leadPayload, onReset }) => {
+      const r = chosen ? calculateTotal(sel, chosen) : null;
+      const goMain = () => { window.location.href = INTEGRATIONS.mainSiteUrl; };
+      return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <TopBar showBack={false} total={0} onLogoClick={goMain}/>
+          <div style={{ maxWidth:520, margin:"0 auto", padding:"40px 20px 80px" }} className="rayo-anim">
+            <div style={{ background:T.bgCard, borderRadius:T.rLg, padding:"44px 28px",
+              textAlign:"center", border:`1px solid ${T.border}` }}>
+              <div style={{ width:56, height:56, borderRadius:"50%", background:T.accent,
+                display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+                <Ico d="M14 4L7 13l-4-4" size={24} stroke={T.text} sw="2.5"/>
+              </div>
+              <h1 style={{ fontSize:22, fontWeight:800, color:T.text, marginBottom:10 }}>Заявка отправлена</h1>
+              <p style={{ fontSize:14, color:T.textSub, marginBottom:24, lineHeight:1.6 }}>
+                Подрядчик получил вашу смету и свяжется в течение рабочего дня.
+                Копия отправлена на ваш контакт.
+              </p>
+
+              {r && chosen && (
+                <div style={{ background:T.bgDark, borderRadius:T.r, padding:"16px 20px", marginBottom:24 }}>
+                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase",
+                    letterSpacing:"0.08em", marginBottom:6 }}>
+                    ВАШ РАСЧЁТ · {chosen.name.toUpperCase()}
+                  </div>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:5, justifyContent:"center", flexWrap:"wrap" }}>
+                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>от</span>
+                    <span style={{ fontSize:22, fontWeight:900, color:"#fff" }}>{fmtK(r.gMin)}</span>
+                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>до</span>
+                    <span style={{ fontSize:22, fontWeight:900, color:T.accent }}>{fmtK(r.gMax)} ₸</span>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <BtnOutline onClick={goMain}>На главную</BtnOutline>
+                <BtnOutline onClick={onReset}>Начать сначала</BtnOutline>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // ГЛАВНЫЙ КОМПОНЕНТ
+    // ═══════════════════════════════════════════════════════════════
+    function RayoCalculator() {
+      const [gStep, setGStep]     = useState("scope");
+      const [sel, setSel]         = useState({...INIT_SEL});
+      const [microSteps, setMicroSteps] = useState([]);
+      const [microIdx, setMicroIdx]     = useState(0);
+      const [ranked, setRanked]         = useState([]);
+      const [chosen, setChosen]         = useState(null);
+      const [errors, setErrors]         = useState({});
+      const [leadPayload, setLeadPayload] = useState(null);
+      const [animKey, setAnimKey]         = useState(0);
+      const isMobile = useIsMobile();
+      useStyles();
+
+      const goStep = useCallback((step) => {
+        setAnimKey(k => k + 1);
+        setGStep(step);
+      }, []);
+
+      const upd = useCallback((k, v) => setSel(p => ({...p, [k]:v})), []);
+      const updArea = (stage, v) => setSel(p => ({...p, stageAreas:{...(p.stageAreas||{}),[stage]:v}}));
+      const toggleStage = s => setSel(p => {
+        const cur = p.selectedStages;
+        return {...p, selectedStages: cur.includes(s) ? cur.filter(x=>x!==s) : [...cur, s]};
+      });
+
+      const liveResult = (gStep !== "scope" && sel.calculationScope)
+        ? calculateTotal(sel, CONFIG.independent) : null;
+
+      const goScope = scope => {
+        upd("calculationScope", scope);
+        setTimeout(() => {
+          if (scope !== "selected_stages") {
+            const def = PATH_DEFAULTS[scope];
+            setSel(p => ({...p, calculationScope:scope, selectedStages:def.stages, ...def.sel}));
+          } else {
+            setSel(p => ({...p, calculationScope:scope}));
+          }
+          setAnimKey(k=>k+1); setGStep("area");
+        }, 200);
+      };
+
+      const goCondition = c => {
+        upd("condition", c);
+        setTimeout(() => {
+          const stages = sel.calculationScope === "selected_stages"
+            ? sel.selectedStages : (PATH_DEFAULTS[sel.calculationScope]?.stages || []);
+          setMicroSteps(buildMicroSteps(stages));
+          setMicroIdx(0); setAnimKey(k=>k+1); setGStep("micro");
+        }, 200);
+      };
+
+      const finishMicro = () => {
+        setRanked(rankContractors(CONFIG.contractors, sel.selectedStages));
+        setAnimKey(k=>k+1); setGStep("result");
+      };
+      const goNextMicro = () => {
+        setAnimKey(k=>k+1);
+        if (microIdx < microSteps.length - 1) setMicroIdx(i => i+1);
+        else finishMicro();
+      };
+      const goPrevMicro = () => {
+        setAnimKey(k=>k+1);
+        if (microIdx === 0) { setGStep("condition"); }
+        else setMicroIdx(i => i-1);
+      };
+
+      const validateArea = () => {
+        const n = Number(sel.area);
+        if (!sel.area || n < 10 || n > 300) { setErrors({area:"Укажите от 10 до 300 м²"}); return false; }
+        setErrors({}); return true;
+      };
+      const reset = () => {
+        setSel({...INIT_SEL}); setGStep("scope"); setChosen(null);
+        setErrors({}); setRanked([]); setLeadPayload(null); setAnimKey(k=>k+1);
+      };
+
+      const totalSteps = sel.calculationScope === "selected_stages" ? 6 : 5;
+      const stepNum = { scope:0, area:1, rooms:2, stages:3,
+        condition: sel.calculationScope === "selected_stages" ? 4 : 3, micro:totalSteps }[gStep] || 0;
+      const currentMicroStage = microSteps[microIdx];
+      const goMain = () => { window.location.href = INTEGRATIONS.mainSiteUrl; };
+
+      if (gStep === "result") return (
+        <ResultScreen sel={sel} rankedContractors={ranked}
+          onChoose={p => { setChosen(p); setAnimKey(k=>k+1); setGStep("lead"); }}
+          onBack={() => { setMicroIdx(microSteps.length-1); setAnimKey(k=>k+1); setGStep("micro"); }}
+          onReset={reset}/>
+      );
+      if (gStep === "lead" && chosen) return (
+        <LeadForm sel={sel} chosenProfile={chosen}
+          onSubmit={p => { setLeadPayload(p); setAnimKey(k=>k+1); setGStep("success"); }}
+          onBack={() => { setAnimKey(k=>k+1); setGStep("result"); }}/>
+      );
+      if (gStep === "success") return (
+        <SuccessScreen sel={sel} chosen={chosen} leadPayload={leadPayload} onReset={reset}/>
+      );
+
+      const onBack = () => {
+        setAnimKey(k=>k+1);
+        if (gStep === "scope") return;
+        if (gStep === "area") setGStep("scope");
+        else if (gStep === "rooms") setGStep("area");
+        else if (gStep === "stages") setGStep("rooms");
+        else if (gStep === "condition") setGStep(sel.calculationScope === "selected_stages" ? "stages" : "rooms");
+        else if (gStep === "micro") goPrevMicro();
+        else setGStep("scope");
+      };
+
+      const WizHeader = () => gStep === "scope"
+        ? (
+          <div style={{ background:T.bgCard, borderBottom:`2.5px solid ${T.accent}`, position:"sticky", top:0, zIndex:50 }}>
+            <div style={{ maxWidth:960, margin:"0 auto", padding:"0 24px",
+              display:"flex", alignItems:"center", justifyContent:"space-between", height:60 }}>
+              <div style={{ width:90 }}/>
+              <Logo onClick={goMain}/>
+              <div style={{ width:90, textAlign:"right" }}>
+                <span style={{ fontSize:12, color:T.textMuted, fontWeight:600 }}>Шаг 0/{totalSteps}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <TopBar step={stepNum} total={totalSteps} onBack={onBack} onLogoClick={goMain}/>
+        );
+
+      // ШАГ 0: ВЫБОР ПУТИ
+      if (gStep === "scope") return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <WizHeader/>
+          <div style={{ maxWidth:680, margin:"0 auto", padding: isMobile?"20px 16px 80px":"44px 24px 80px" }}
+            key={animKey} className="rayo-anim">
+            <StepLabel label="Шаг 0 · Откуда начнём"/>
+            <h1 style={{ fontSize:isMobile?30:38, fontWeight:800, color:T.text, marginBottom:10, lineHeight:1.15, letterSpacing:-0.8 }}>
+              Что вы знаете<br/>про ваш ремонт?
+            </h1>
+            <p style={{ fontSize:14, color:T.textSub, marginBottom:32, lineHeight:1.65, maxWidth:480 }}>
+              Выберите подход — мы подстроим количество вопросов.<br/>Ответы можно менять в любой момент.
+            </p>
+
+            <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr 1fr", gap:12, marginBottom:28 }}>
+              {[
+                { val:"full_repair",     steps:"5 шагов", title:"Считаю весь ремонт", sub:"Полная смета по всей квартире" },
+                { val:"selected_stages", steps:"6 шагов", title:"Выбираю этапы сам", sub:"Только нужные работы — кухня, санузел и т.д." },
+                { val:"not_sure",        steps:"5 шагов", title:"Пока не знаю",       sub:"Покажите ориентир — потом уточню" },
+              ].map(({ val, steps, title, sub }) => {
+                const active = sel.calculationScope === val;
+                return (
+                  <button key={val} className="rayo-scope-card"
+                    onClick={() => { setSel(p=>({...p, calculationScope:val})); setTimeout(()=>goScope(val), 160); }}
+                    style={{ display:"flex", flexDirection:"column", background: active ? T.text : T.bgCard,
+                      border:`1.5px solid ${active ? T.text : T.border}`,
+                      borderRadius:T.rLg, cursor:"pointer", padding:0, overflow:"hidden",
+                      textAlign:"left", position:"relative" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
+                      padding:"18px 16px 10px" }}>
+                      <div style={{ width:38, height:38, borderRadius:10,
+                        background: active ? T.accent : "#F2F0EA",
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        color: active ? T.text : T.textSub }}>
+                        {SCOPE_ICONS[val]}
+                      </div>
+                      <span style={{ fontSize:10, fontWeight:700, color: active?"#777":T.textMuted,
+                        textTransform:"uppercase", letterSpacing:"0.08em", paddingTop:2 }}>{steps}</span>
+                    </div>
+                    <div style={{ padding:"0 16px 20px", flex:1, display:"flex", flexDirection:"column" }}>
+                      <div style={{ fontSize:14, fontWeight:700, color: active?T.white:T.text,
+                        marginBottom:6, lineHeight:1.3 }}>{title}</div>
+                      <div style={{ fontSize:12, color: active?"#7A8099":T.textSub, lineHeight:1.5,
+                        marginBottom:"auto", paddingBottom:14 }}>{sub}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color: active?T.accent:T.text,
+                        display:"flex", alignItems:"center", gap:4 }}>
+                        Начать <span style={{ fontSize:16 }}>→</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ fontSize:12, color:T.textMuted, display:"flex", alignItems:"center", gap:6 }}>
+              <Ico d="M8 14A6 6 0 108 2a6 6 0 000 12zm-1-7h2v4H7zm0-2h2v1H7z" size={14} stroke={T.textMuted}/>
+              Ваши данные не передаются третьим лицам без согласия
+            </div>
+          </div>
+        </div>
+      );
+
+      // ШАГ 1: ПЛОЩАДЬ
+      if (gStep === "area") {
+        const areaVal = Number(sel.area) || 50;
+        const progress = ((Math.min(areaVal,200) - 15) / (200 - 15) * 100).toFixed(1) + "%";
+        return (
+          <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+            <WizHeader/>
+            <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+              <StepLabel label="Шаг 1 · Площадь"/>
+              <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
+                Какая площадь квартиры?
+              </h1>
+              <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>
+                Можно указать примерно — диапазон уточнится на следующих шагах.
+              </p>
+              <div style={{ background:T.bgCard, borderRadius:T.rLg, padding:isMobile?"20px":"28px",
+                border:`1.5px solid ${T.border}` }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+                    <span style={{ fontSize:isMobile?52:64, fontWeight:800, color:T.text, lineHeight:1, letterSpacing:-2 }}>
+                      {sel.area||"—"}
+                    </span>
+                    <span style={{ fontSize:20, color:T.textSub, fontWeight:500 }}>м²</span>
+                  </div>
+                  <div style={{ display:"flex", gap:6, flexWrap:"wrap", justifyContent:"flex-end" }}>
+                    {[36,56,78,100].map(v => {
+                      const active = Number(sel.area) === v;
+                      return (
+                        <button key={v} onClick={() => upd("area", String(v))} style={{
+                          width:42, height:42, borderRadius:"50%", border:"none",
+                          background: active ? T.text : "#F2F0EA",
+                          color: active ? T.accent : T.textSub,
+                          fontSize:13, fontWeight:700, cursor:"pointer", transition:"all .15s",
+                        }}>{v}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ position:"relative", marginBottom:6 }}>
+                  <div style={{
+                    position:"absolute", top:"50%", left:0, right:0,
+                    height:4, borderRadius:2, transform:"translateY(-50%)",
+                    background:`linear-gradient(to right, ${T.accent} ${progress}, #D4D0C8 ${progress})`,
+                    pointerEvents:"none",
+                  }}/>
+                  <input type="range" min={15} max={200} step={1} value={areaVal}
+                    onChange={e => upd("area", e.target.value)}
+                    style={{ width:"100%", position:"relative", zIndex:1,
+                      background:"transparent", height:22, cursor:"pointer" }}/>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between",
+                  fontSize:11, color:T.textMuted, marginBottom:20 }}>
+                  <span>15 м²</span><span>200 м²</span>
+                </div>
+                {errors.area && <div style={{ fontSize:12, color:T.red, marginBottom:10 }}>{errors.area}</div>}
+                <Btn onClick={() => { if(validateArea()) { setAnimKey(k=>k+1); setGStep("rooms"); } }}>
+                  Дальше →
+                </Btn>
+              </div>
+            </WizardWrap>
+          </div>
+        );
+      }
+
+      // ШАГ 2: КОМНАТЫ
+      if (gStep === "rooms") return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <WizHeader/>
+          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+            <StepLabel label="Шаг 2 · Тип квартиры"/>
+            <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>Сколько комнат?</h1>
+            <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>Один тап — переход к следующему шагу.</p>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              {[["1","1 комната"],["2","2 комнаты"],["3","3 комнаты"],["4+","4 и более"]].map(([val,label]) => (
+                <button key={val} onClick={() => {
+                  upd("rooms", val);
+                  setTimeout(() => { setAnimKey(k=>k+1); setGStep(sel.calculationScope==="selected_stages"?"stages":"condition"); }, 180);
+                }} className="rayo-scope-card" style={{
+                  padding:"24px 12px", borderRadius:T.r, textAlign:"center", cursor:"pointer",
+                  border:`1.5px solid ${sel.rooms===val?T.text:T.border}`,
+                  background: sel.rooms===val?T.text:T.bgCard,
+                }}>
+                  <div style={{ fontSize:36, fontWeight:800, color:sel.rooms===val?T.accent:T.text, letterSpacing:-1 }}>{val}</div>
+                  <div style={{ fontSize:13, color:sel.rooms===val?"#7A8099":T.textSub, marginTop:5, fontWeight:500 }}>{label}</div>
+                </button>
+              ))}
+            </div>
+          </WizardWrap>
+        </div>
+      );
+
+      // ШАГ 3: ВЫБОР ЭТАПОВ (только selected_stages)
+      if (gStep === "stages") return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <WizHeader/>
+          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+            <StepLabel label="Шаг 3 · Выбор этапов"/>
+            <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
+              Какие этапы вам нужны?
+            </h1>
+            <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>
+              Можно выбрать несколько. Кнопка «Дальше» появится после выбора.
+            </p>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
+              {STAGE_ORDER.map(s => (
+                <StagePill key={s} label={LABELS[s]} icon={STAGE_ICONS[s]}
+                  selected={sel.selectedStages.includes(s)} onClick={() => toggleStage(s)}/>
+              ))}
+            </div>
+            {errors.stages && <div style={{ fontSize:12, color:T.red, marginBottom:10 }}>{errors.stages}</div>}
+            <Btn
+              disabled={sel.selectedStages.length === 0}
+              onClick={() => {
+                if (!sel.selectedStages.length) { setErrors({stages:"Выберите хотя бы один"}); return; }
+                setErrors({}); setAnimKey(k=>k+1); setGStep("condition");
+              }}
+              style={{ opacity: sel.selectedStages.length > 0 ? 1 : 0.5 }}>
+              {sel.selectedStages.length > 0
+                ? `Дальше · выбрано ${sel.selectedStages.length} →`
+                : "Выберите хотя бы один этап →"}
+            </Btn>
+          </WizardWrap>
+        </div>
+      );
+
+      // ШАГ 3/4: СОСТОЯНИЕ КВАРТИРЫ
+      if (gStep === "condition") return (
+        <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+          <WizHeader/>
+          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+            <StepLabel label={`Шаг ${sel.calculationScope==="selected_stages"?4:3} · Состояние`}/>
+            <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
+              В каком состоянии квартира?
+            </h1>
+            <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>
+              Влияет на коэффициент сложности и объём подготовительных работ.
+            </p>
+            {[
+              ["new_building",    "Новостройка без отделки",         "Чистовая отделка с нуля",      "×1.0"],
+              ["secondary_normal","Вторичка в норм. состоянии",      "Жилая, без явных проблем",     "×1.1"],
+              ["old_full_repair", "Старая квартира под ремонт",      "Нужна капитальная переделка",  "×1.25"],
+              ["very_bad",        "Убитое состояние",                "Всё нужно менять",             "×1.4"],
+            ].map(([val,title,sub,coef]) => (
+              <OptionRow key={val} icon={COND_ICONS[val]} title={title} sub={sub}
+                right={coef} onClick={() => goCondition(val)} active={sel.condition===val}/>
+            ))}
+          </WizardWrap>
+        </div>
+      );
+
+      // ШАГ 5: МИКРО-ШАГИ
+      if (gStep === "micro") {
+        const stage = currentMicroStage;
+        const sa = sel.stageAreas || {};
+
+        const Nav = () => (
+          <div style={{ marginTop:22 }}>
+            <div style={{ display:"flex", gap:10, marginBottom:10 }}>
+              <BtnGhost onClick={goPrevMicro} style={{ flexShrink:0, padding:"12px 20px" }}>← Назад</BtnGhost>
+              <Btn onClick={goNextMicro} style={{ flex:1 }}>
+                {microIdx < microSteps.length-1 ? "Дальше →" : "Показать расчёт →"}
+              </Btn>
+            </div>
+            {microIdx < microSteps.length-1 && (
+              <button onClick={goNextMicro} style={{ display:"block", width:"100%", textAlign:"center",
+                fontSize:13, color:T.textMuted, background:"none", border:"none", cursor:"pointer",
+                textDecoration:"underline", textUnderlineOffset:2 }}>
+                Пропустить шаг
+              </button>
+            )}
+          </div>
+        );
+
+        return (
+          <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
+            <WizHeader/>
+            <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+              <div style={{ fontSize:12, color:T.textMuted, marginBottom:6 }}>
+                Этап {microIdx+1} из {microSteps.length}
+              </div>
+              <MiniProg current={microIdx} total={microSteps.length}/>
+
+              {stage === "materials" && (<>
+                <StageHeader icon={STAGE_ICONS.materials} title="Материалы" subtitle="Ориентировочно ~37% от стоимости работ"/>
+                <OptionRow icon="✓" title="Да, показать с материалами" sub="Более реалистичная оценка"
+                  onClick={()=>upd("includeMaterials","yes")} active={sel.includeMaterials==="yes"}/>
+                <OptionRow icon="✕" title="Только стоимость работ" sub=""
+                  onClick={()=>upd("includeMaterials","no")} active={sel.includeMaterials==="no"}/>
+                <Nav/>
+              </>)}
+
+              {stage === "roughWorks" && (<>
+                <StageHeader icon={STAGE_ICONS.roughWorks} title="Черновые работы"
+                  subtitle="Подготовительный этап — часто самый дорогой"/>
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", marginBottom:10 }}>Что нужно сделать?</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:14 }}>
+                  {[
+                    ["plastering",    "Штукатурка стен",  "Выравнивание под отделку",              "M2 4h12v2H2zm0 4h12v2H2zm0 4h8v2H2z"],
+                    ["screed",        "Стяжка пола",      "Цементная основа под покрытие",         "M2 12h12M3 9l2-5h6l2 5M6 4V2m4 2V2"],
+                    ["selfLeveling",  "Наливной пол",     "Финишный слой выравнивания",            "M2 10c2-3 4-3 6 0s4 3 6 0M2 13h12"],
+                    ["radiators",     "Замена батарей",   "Радиаторы отопления",                   "M4 2v12M7 2v12M10 2v12M13 2v12M2 5h12M2 11h12"],
+                    ["soundproofing", "Звукоизоляция",    "Стены, пол или потолок",                "M4 8a4 4 0 008 0M1.5 8a6.5 6.5 0 0013 0"],
+                  ].map(([v, t, s, iconD]) => {
+                    const active = (sel.roughItems||[]).includes(v);
+                    return (
+                      <button key={v} onClick={() => {
+                        const cur = sel.roughItems || [];
+                        upd("roughItems", cur.includes(v) ? cur.filter(x=>x!==v) : [...cur, v]);
+                      }} data-active={active} className="rayo-stage-pill" style={{
+                        display:"flex", alignItems:"center", gap:10, padding:"12px 14px",
+                        borderRadius:T.r, border:`1.5px solid ${active ? T.text : T.border}`,
+                        background: active ? T.text : T.bgCard, cursor:"pointer", textAlign:"left", width:"100%",
+                      }}>
+                        <div style={{ width:32, height:32, borderRadius:8, flexShrink:0,
+                          background: active ? T.accent : "#F2F0EA",
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          color: active ? T.text : T.textSub }}>
+                          <Ico d={iconD}/>
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:13, fontWeight: active ? 700 : 500, color: active ? T.white : T.text }}>{t}</div>
+                          <div style={{ fontSize:11, color: active ? "rgba(255,255,255,0.5)" : T.textMuted, marginTop:1 }}>{s}</div>
+                        </div>
+                        {active && (
+                          <div style={{ width:20, height:20, borderRadius:"50%", background:T.accent, flexShrink:0,
+                            display:"flex", alignItems:"center", justifyContent:"center" }}>
+                            <Ico d="M5 9.5l3 3 5-5" size={11} stroke={T.text} sw="2"/>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(sel.roughItems||[]).includes("radiators") && (
+                  <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r,
+                    padding:"14px 16px", marginBottom:8 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                      letterSpacing:"0.06em", marginBottom:10 }}>Сколько радиаторов заменить?</div>
+                    <NumInput label="Радиаторы" value={sel.radiatorCount}
+                      onChange={v=>upd("radiatorCount",v)} suffix="шт"/>
+                    <div style={{ fontSize:11, color:T.textMuted, marginTop:8 }}>
+                      ~{CONFIG.independent.prices.radiatorUnit.toLocaleString("ru-RU")} ₸/шт — только монтаж без стоимости радиатора
+                    </div>
+                  </div>
+                )}
+                <Nav/>
+              </>)}
+
+              {stage === "demolition" && (<>
+                <StageHeader icon={STAGE_ICONS.demolition} title="Демонтаж" subtitle="Что нужно разобрать перед ремонтом?"/>
+                {[["none","Не нужен",""],["light","Лёгкий","Снять плитку, обои, плинтуса"],
+                  ["medium","Средний","Убрать перегородки, стяжку"],["full","Полный","До бетона"]].map(([v,t,s])=>(
+                  <OptionRow key={v} icon={STAGE_ICONS.demolition} title={t} sub={s}
+                    onClick={()=>upd("demolition",v)} active={sel.demolition===v}/>
+                ))}
+                <Nav/>
+              </>)}
+
+              {stage === "wasteRemoval" && (<>
+                <StageHeader icon={STAGE_ICONS.wasteRemoval} title="Вывоз мусора" subtitle={`Фиксированная стоимость: ${fmt(CONFIG.independent.prices.wasteRemovalFixed)}`}/>
+                <OptionRow icon="✓" title="Да, нужен" sub="Вывоз и утилизация строительного мусора"
+                  onClick={()=>upd("wasteRemoval","yes")} active={sel.wasteRemoval==="yes"}/>
+                <OptionRow icon="✕" title="Нет, справимся сами" sub=""
+                  onClick={()=>upd("wasteRemoval","no")} active={sel.wasteRemoval==="no"}/>
+                <Nav/>
+              </>)}
+
+              {stage === "electric" && (<>
+                <StageHeader icon={STAGE_ICONS.electric} title="Электрика" subtitle="Проводка, розетки, щиток."/>
+                <OptionRow icon={STAGE_ICONS.electric} title="Не трогаем" sub="Оставляем как есть"
+                  onClick={()=>{ upd("electricOutlets",""); upd("electricSwitches",""); upd("electricLights",""); }}
+                  active={!sel.electricOutlets && !sel.electricSwitches && !sel.electricLights}/>
+                <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r,
+                  padding:"16px", marginBottom:8 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                    letterSpacing:"0.06em", marginBottom:12 }}>Укажите количество точек</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                    <NumInput label="Розетки" value={sel.electricOutlets} onChange={v=>upd("electricOutlets",v)} suffix="шт"/>
+                    <NumInput label="Выключатели" value={sel.electricSwitches} onChange={v=>upd("electricSwitches",v)} suffix="шт"/>
+                    <NumInput label="Светильники" value={sel.electricLights} onChange={v=>upd("electricLights",v)} suffix="шт"/>
+                  </div>
+                  <div style={{ fontSize:11, color:T.textMuted, marginTop:10 }}>
+                    ~{CONFIG.independent.prices.electricOutletPrice.toLocaleString()} ₸/розетка ·{" "}
+                    {CONFIG.independent.prices.electricSwitchPrice.toLocaleString()} ₸/выкл ·{" "}
+                    {CONFIG.independent.prices.electricLightPrice.toLocaleString()} ₸/светильник
+                  </div>
+                </div>
+                <Nav/>
+              </>)}
+
+              {stage === "plumbing" && (<>
+                <StageHeader icon={STAGE_ICONS.plumbing} title="Сантехника" subtitle="Трубы, разводка, подключения."/>
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", marginBottom:10 }}>Где нужны трубы?</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                  {[["sanuzul","🚿 Только санузел"],["kitchen","🍳 Только кухня"],["all","🏠 Всё вместе"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>upd("plumbingLocation",v)} style={{
+                      padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
+                      border:`1.5px solid ${sel.plumbingLocation===v?T.text:T.border}`,
+                      background: sel.plumbingLocation===v?T.text:T.bgCard,
+                      color: sel.plumbingLocation===v?T.white:T.text, textAlign:"center",
+                    }}>{l}</button>
+                  ))}
+                </div>
+                <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r,
+                  padding:"14px 16px", marginBottom:8 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                    letterSpacing:"0.06em", marginBottom:10 }}>Метраж труб (погонные метры)</div>
+                  <NumInput label="Метры труб" value={sel.plumbingMeters}
+                    onChange={v=>upd("plumbingMeters",v)} suffix="п/м"/>
+                </div>
+                {[["none","Не трогаем",""],["partial","Частично заменить","Подводка к приборам"],
+                  ["full","Полная замена","Все стояки и разводка"]].map(([v,t,s])=>(
+                  <OptionRow key={v} icon={STAGE_ICONS.plumbing} title={t} sub={s}
+                    onClick={()=>upd("plumbing",v)} active={sel.plumbing===v}/>
+                ))}
+                <Nav/>
+              </>)}
+
+              {stage === "bathroom" && (<>
+                <StageHeader icon={STAGE_ICONS.bathroom} title="Санузел" subtitle="Объём работ и тип сантехники."/>
+                <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Площадь этой зоны"/>
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", marginBottom:8 }}>Тип сантехники</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                  {[["shower","🚿 Душевая"],["bath","🛁 Ванна"],["both","🛁🚿 Оба"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>upd("bathroomFixtureType",v)} style={{
+                      padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
+                      border:`1.5px solid ${sel.bathroomFixtureType===v?T.text:T.border}`,
+                      background: sel.bathroomFixtureType===v?T.text:T.bgCard,
+                      color: sel.bathroomFixtureType===v?T.white:T.text, textAlign:"center",
+                    }}>{l}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
+                {[["none","Не трогаем",""],["cosmetic","Косметика","Замена смесителей, покраска"],
+                  ["full_1","Полный ремонт 1 санузла","Плитка, сантехника, потолок"],
+                  ["full_2","Полный ремонт 2 санузлов","Совмещённый + отдельный"]].map(([v,t,s])=>(
+                  <OptionRow key={v} icon={STAGE_ICONS.bathroom} title={t} sub={s}
+                    onClick={()=>upd("bathroom",v)} active={sel.bathroom===v}/>
+                ))}
+                <Nav/>
+              </>)}
+
+              {stage === "kitchen" && (<>
+                <StageHeader icon={STAGE_ICONS.kitchen} title="Кухня" subtitle="Ремонт кухонной зоны (без мебели и техники)."/>
+                <ZoneInput value={sa.kitchen} onChange={v=>updArea("kitchen",v)} placeholder="Площадь кухонной зоны"/>
+                {[["none","Не трогаем",""],["basic","Обычный ремонт","Стены, пол, потолок"],
+                  ["with_apron","С фартуком","Под кухонный гарнитур"]].map(([v,t,s])=>(
+                  <OptionRow key={v} icon={STAGE_ICONS.kitchen} title={t} sub={s}
+                    onClick={()=>upd("kitchen",v)} active={sel.kitchen===v}/>
+                ))}
+                <Nav/>
+              </>)}
+
+              {stage === "ceiling" && (<>
+                <StageHeader icon={STAGE_ICONS.ceiling} title="Потолки" subtitle={null}/>
+                {[["none","Не трогаем",""],["stretch","Натяжной потолок","Глянец или матовый"],
+                  ["paint","Под покраску","Шпаклёвка и покраска"]].map(([v,t,s])=>(
+                  <OptionRow key={v} icon={STAGE_ICONS.ceiling} title={t} sub={s}
+                    onClick={()=>upd("ceiling",v)} active={sel.ceiling===v}/>
+                ))}
+                <Nav/>
+              </>)}
+
+              {stage === "floor" && (<>
+                <StageHeader icon={STAGE_ICONS.floor} title="Полы" subtitle="Покрытие и подготовка основания."/>
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", marginBottom:8 }}>Покрытие</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                  {[["none","Не трогаем"],["linoleum","Линолеум"],["laminate","Ламинат"],
+                    ["spc","SPC / Кварцвинил"],["tile","Плитка"]].map(([v,l])=>(
+                    <StagePill key={v} label={l} icon={STAGE_ICONS.floor}
+                      selected={sel.floorCovering===v} onClick={()=>upd("floorCovering",v)}/>
+                  ))}
+                </div>
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", marginBottom:8 }}>
+                  Выравнивание пола · +{CONFIG.independent.prices.floorLevelingM2.toLocaleString()} ₸/м²
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:4 }}>
+                  {[["yes","✓ Да, нужно"],["no","— Нет"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>upd("floorLeveling",v)} style={{
+                      padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer",
+                      border:`1.5px solid ${sel.floorLeveling===v?T.text:T.border}`,
+                      background: sel.floorLeveling===v?T.text:T.bgCard,
+                      color: sel.floorLeveling===v?T.white:T.text,
+                    }}>{l}</button>
+                  ))}
+                </div>
+                <Nav/>
+              </>)}
+
+              {stage === "walls" && (<>
+                <StageHeader icon={STAGE_ICONS.walls} title="Стены" subtitle="Отделка и выравнивание."/>
+                {[["none","Не трогаем",""],["wallpaper","Обои",""],
+                  ["paint","Покраска",""],["decorative","Декоративная отделка","Штукатурка, венецианка"]].map(([v,t,s])=>(
+                  <OptionRow key={v} icon={STAGE_ICONS.walls} title={t} sub={s}
+                    onClick={()=>upd("walls",v)} active={sel.walls===v}/>
+                ))}
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", margin:"14px 0 8px" }}>
+                  Выравнивание стен · +{CONFIG.independent.prices.wallLevelingM2.toLocaleString()} ₸/м²
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                  {[["yes","✓ Да, нужно"],["no","— Нет"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>upd("wallLeveling",v)} style={{
+                      padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer",
+                      border:`1.5px solid ${sel.wallLeveling===v?T.text:T.border}`,
+                      background: sel.wallLeveling===v?T.text:T.bgCard,
+                      color: sel.wallLeveling===v?T.white:T.text,
+                    }}>{l}</button>
+                  ))}
+                </div>
+                <Nav/>
+              </>)}
+            </WizardWrap>
+          </div>
+        );
+      }
+
+      return <div/>;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<RayoCalculator/>);
+  </script>
+</body>
+</html>
