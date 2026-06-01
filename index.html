@@ -499,7 +499,7 @@
         await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl, {
           method: "POST",
           mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain" },
           body: JSON.stringify(row),
         });
       } catch (e) { console.warn("Google Sheets:", e); }
