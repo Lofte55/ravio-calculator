@@ -390,20 +390,77 @@
     // ИНТЕГРАЦИИ — ФУНКЦИИ ОТПРАВКИ
     // ═══════════════════════════════════════════════════════════════
     function fmtTgMsg(lead, sel, result, profile) {
-      const cond = { new_building:"Новостройка", secondary_normal:"Вторичка", old_full_repair:"Под ремонт", very_bad:"Убитое" };
-      const L = { demolition:"Демонтаж", wasteRemoval:"Вывоз мусора", roughWorks:"Черновые",
-                  electric:"Электрика", plumbing:"Сантехника", bathroom:"Санузел",
-                  kitchen:"Кухня", ceiling:"Потолки", floor:"Полы", walls:"Стены" };
-      const stages = sel.selectedStages.map(s => `  — ${L[s]||s}`).join("\n");
+      const cond = { new_building:"Новостройка", secondary_normal:"Вторичка (норм)", old_full_repair:"Старый ремонт", very_bad:"Убитое состояние" };
+      const contact = { whatsapp:"WhatsApp", telegram:"Telegram", call:"Звонок" };
+      const timing  = { asap:"Как можно скорее", month:"В течение месяца", quarter:"В этом квартале", planning:"Пока планирую" };
+      const scope   = { full_repair:"Весь ремонт", selected_stages:"По этапам", not_sure:"Ориентир" };
+      const sa = sel.stageAreas || {};
+      const fmt = n => Math.round(n).toLocaleString("ru-RU");
+
+      // Детали по каждому этапу
+      const stageLines = sel.selectedStages.map(s => {
+        const area = sa[s] ? ` · ${sa[s]} м²` : "";
+        switch(s) {
+          case "demolition":
+            const dtype = {light:"лёгкий (обои, плитка)", medium:"средний (перегородки, стяжка)", full:"полный (до бетона, трубы)", none:""}[sel.demolition] || "";
+            return `  ⚒ Демонтаж: ${dtype}${area}`;
+          case "wasteRemoval":
+            return `  🚛 Вывоз мусора`;
+          case "roughWorks":
+            const ri = sel.roughItems || [];
+            const rmap = {plastering:"штукатурка", screed:"стяжка", selfLeveling:"наливной пол", radiators:`радиаторы ${sel.radiatorCount||""}шт`, soundproofing:"звукоизоляция"};
+            const rlist = ri.map(x => rmap[x]||x).join(", ");
+            return `  🧱 Черновые: ${rlist||"—"}`;
+          case "electric":
+            const outlets  = sel.electricOutlets  ? `розетки: ${sel.electricOutlets}` : "";
+            const switches = sel.electricSwitches ? `выключатели: ${sel.electricSwitches}` : "";
+            const lights   = sel.electricLights   ? `светильники: ${sel.electricLights}` : "";
+            const eparts   = [outlets, switches, lights].filter(Boolean).join(", ");
+            return `  ⚡ Электрика${area}: ${eparts||"—"}`;
+          case "plumbing":
+            const ptype = {partial:"частичная", full:"полная замена", none:""}[sel.plumbing] || "";
+            const pm = sel.plumbingMeters ? ` · ${sel.plumbingMeters} п.м.` : "";
+            const ploc = {sanuzul:"санузел", kitchen:"кухня", all:"везде"}[sel.plumbingLocation] || "";
+            return `  🚿 Сантехника: ${ptype}${pm}${ploc ? ` · ${ploc}` : ""}`;
+          case "bathroom":
+            const btype = {cosmetic:"косметика", full_1:"полный 1 санузел", full_2:"полный 2 санузла", none:""}[sel.bathroom] || "";
+            const bfix  = {shower:"душевая кабина", bath:"ванна", both:"душ + ванна"}[sel.bathroomFixtureType] || "";
+            return `  🛁 Санузел: ${btype}${bfix ? ` · ${bfix}` : ""}${area}`;
+          case "kitchen":
+            const ktype = {basic:"обычный", with_apron:"с фартуком", none:""}[sel.kitchen] || "";
+            return `  🍳 Кухня: ${ktype}${area}`;
+          case "ceiling":
+            const ctype = {stretch:"натяжной", paint:"под покраску", none:""}[sel.ceiling] || "";
+            return `  ▣ Потолки: ${ctype}`;
+          case "floor":
+            const ftype = {linoleum:"линолеум", laminate:"ламинат", spc:"SPC/кварцвинил", tile:"плитка", none:""}[sel.floorCovering] || "";
+            const flev  = sel.floorLeveling === "yes" ? " + выравнивание" : "";
+            return `  ▥ Полы: ${ftype}${flev}`;
+          case "walls":
+            const wtype = {wallpaper:"обои", paint:"покраска", decorative:"декоративная штукатурка", none:""}[sel.walls] || "";
+            const wlev  = sel.wallLeveling === "yes" ? " + выравнивание" : "";
+            return `  ▤ Стены: ${wtype}${wlev}`;
+          default: return `  — ${s}`;
+        }
+      }).join("\n");
+
+      const mats = sel.includeMaterials === "yes" ? "Да (~37%)" : "Нет";
+      const unavail = result.unavail.length > 0
+        ? `\n⚠️ Не выполняет: ${result.unavail.map(s=>({demolition:"Демонтаж",wasteRemoval:"Вывоз",roughWorks:"Черновые",electric:"Электрика",plumbing:"Сантехника",bathroom:"Санузел",kitchen:"Кухня",ceiling:"Потолки",floor:"Полы",walls:"Стены"}[s]||s)).join(", ")}`
+        : "";
+
       return `🏗 <b>Новая заявка RAVIO · ${CONFIG.city}</b>\n\n`
-        + `👤 <b>${lead.name}</b> · ${lead.phone}\n`
-        + `📱 ${lead.contact} · ${lead.timing}\n\n`
-        + `📐 ${sel.area} м² · ${sel.rooms} комн. · ${cond[sel.condition]||""}\n`
-        + `🔧 ${sel.calculationScope === "full_repair" ? "Весь ремонт" : sel.calculationScope === "selected_stages" ? "По этапам" : "Ориентир"}\n`
-        + `📋 Этапы:\n${stages}\n\n`
-        + `💰 ${Math.round(result.gMin).toLocaleString("ru-RU")} — ${Math.round(result.gMax).toLocaleString("ru-RU")} ₸\n`
-        + `🤝 ${profile.name} · совм. ${result.compat}%\n`
-        + `🕐 ${new Date().toLocaleString("ru-RU")} · rayo_calc`;
+        + `👤 <b>${lead.name}</b>\n`
+        + `📞 ${lead.phone} · ${contact[lead.contact]||lead.contact}\n`
+        + `📅 ${timing[lead.timing]||lead.timing}\n\n`
+        + `📐 <b>Объект:</b> ${sel.area} м² · ${sel.rooms} комн. · ${cond[sel.condition]||""}\n`
+        + `🔧 <b>Тип расчёта:</b> ${scope[sel.calculationScope]||""}\n`
+        + `📦 Материалы: ${mats}\n\n`
+        + `📋 <b>Этапы и детали:</b>\n${stageLines}\n\n`
+        + `💰 <b>${fmt(result.gMin)} — ${fmt(result.gMax)} ₸</b>\n`
+        + `   (работы: ${fmt(result.workTotal)} ₸${sel.includeMaterials==="yes" ? ` · матер: ~${fmt(result.matCost)} ₸` : ""})\n`
+        + `🤝 ${profile.name} · совм. ${result.compat}%${unavail}\n\n`
+        + `🕐 ${new Date().toLocaleString("ru-RU")}`;
     }
 
     // Fetch с таймаутом — не висит вечно
@@ -523,18 +580,42 @@
               to_email: "amdk55@yandex.ru",
               name: payload.userName,
               time: new Date().toLocaleString("ru-RU"),
-              message: [
-                "📞 Телефон: " + payload.userPhone,
-                "💬 Связь: " + ({whatsapp:"WhatsApp",telegram:"Telegram",call:"Звонок"}[payload.userContact] || payload.userContact),
-                "📅 Тайминг: " + ({asap:"Как можно скорее",month:"В течение месяца",quarter:"В этом квартале",planning:"Пока планирую"}[payload.userTiming] || payload.userTiming),
-                "",
-                "📐 Площадь: " + payload.area + " м²  |  Комнат: " + payload.rooms,
-                "🏠 Состояние: " + ({new_building:"Новостройка",secondary_normal:"Вторичка (норм)",old_full_repair:"Старый ремонт",very_bad:"Убитое состояние"}[payload.condition] || payload.condition),
-                "🔧 Этапы: " + (payload.selectedStages || []).map(s => ({demolition:"Демонтаж",wasteRemoval:"Вывоз мусора",roughWorks:"Черновые",electric:"Электрика",plumbing:"Сантехника",bathroom:"Санузел",kitchen:"Кухня",ceiling:"Потолки",floor:"Полы",walls:"Стены"}[s] || s)).join(", "),
-                "",
-                "💰 Сумма: " + (payload.totalMin||0).toLocaleString("ru-RU") + " — " + (payload.totalMax||0).toLocaleString("ru-RU") + " ₸",
-                "👷 Подрядчик: " + payload.selectedProfileName,
-              ].join("\n"),
+              message: (()=>{
+                const s = payload;
+                const sa = s.stageAreas || {};
+                const cond = {new_building:"Новостройка",secondary_normal:"Вторичка (норм)",old_full_repair:"Старый ремонт",very_bad:"Убитое состояние"};
+                const lines = [
+                  "📞 " + s.userPhone + "  |  " + ({whatsapp:"WhatsApp",telegram:"Telegram",call:"Звонок"}[s.userContact]||s.userContact),
+                  "📅 " + ({asap:"Как можно скорее",month:"В течение месяца",quarter:"В этом квартале",planning:"Пока планирую"}[s.userTiming]||s.userTiming),
+                  "",
+                  "🏠 " + s.area + " м²  |  " + s.rooms + " комн.  |  " + (cond[s.condition]||s.condition),
+                  "🔧 " + ({full_repair:"Весь ремонт",selected_stages:"По этапам",not_sure:"Ориентир"}[s.calculationScope]||s.calculationScope),
+                  "📦 Материалы: " + (s.includeMaterials==="yes"?"Да (~37%)":"Нет"),
+                  "",
+                  "── ЭТАПЫ ──",
+                  ...(s.selectedStages||[]).map(st=>{
+                    const a = sa[st] ? ` [${sa[st]} м²]` : "";
+                    switch(st){
+                      case"demolition": return "⚒ Демонтаж: "+({light:"лёгкий",medium:"средний",full:"полный (до бетона)"}[s.demolition]||"—")+a;
+                      case"wasteRemoval": return "🚛 Вывоз мусора";
+                      case"roughWorks": return "🧱 Черновые: "+((s.roughItems||[]).map(x=>({plastering:"штукатурка",screed:"стяжка",selfLeveling:"наливной пол",radiators:"радиаторы "+s.radiatorCount+"шт",soundproofing:"звукоизоляция"}[x]||x)).join(", ")||"—");
+                      case"electric": return "⚡ Электрика"+a+": розетки "+( s.electricOutlets||0)+", выключатели "+(s.electricSwitches||0)+", светильники "+(s.electricLights||0);
+                      case"plumbing": return "🚿 Сантехника: "+({partial:"частичная",full:"полная"}[s.plumbing]||"—")+(s.plumbingMeters?" · "+s.plumbingMeters+" п.м.":"")+(s.plumbingLocation?" · "+({sanuzul:"санузел",kitchen:"кухня",all:"везде"}[s.plumbingLocation]||""):"");
+                      case"bathroom": return "🛁 Санузел: "+({cosmetic:"косметика",full_1:"полный 1 санузел",full_2:"полный 2 санузла"}[s.bathroom]||"—")+({shower:" · душевая",bath:" · ванна",both:" · душ+ванна"}[s.bathroomFixtureType]||"")+a;
+                      case"kitchen": return "🍳 Кухня: "+({basic:"обычный",with_apron:"с фартуком"}[s.kitchen]||"—")+a;
+                      case"ceiling": return "▣ Потолки: "+({stretch:"натяжной",paint:"под покраску"}[s.ceiling]||"—");
+                      case"floor": return "▥ Полы: "+({linoleum:"линолеум",laminate:"ламинат",spc:"SPC/кварцвинил",tile:"плитка"}[s.floorCovering]||"—")+(s.floorLeveling==="yes"?" + выравнивание":"");
+                      case"walls": return "▤ Стены: "+({wallpaper:"обои",paint:"покраска",decorative:"декоративная"}[s.walls]||"—")+(s.wallLeveling==="yes"?" + выравнивание":"");
+                      default: return "— "+st;
+                    }
+                  }),
+                  "",
+                  "── СМЕТА ──",
+                  "💰 " + (s.totalMin||0).toLocaleString("ru-RU") + " — " + (s.totalMax||0).toLocaleString("ru-RU") + " ₸",
+                  "👷 Подрядчик: " + s.selectedProfileName,
+                ];
+                return lines.join("\n");
+              })(),
             },
           }),
         });
