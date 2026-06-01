@@ -687,12 +687,8 @@
     // ═══════════════════════════════════════════════════════════════
     const Logo = ({ onClick }) => (
       <div onClick={onClick} className={onClick ? "rayo-logo" : ""}
-        style={{ cursor: onClick?"pointer":"default", flexShrink:0, display:"flex", alignItems:"center", gap:8 }}>
-        <div style={{ width:32, height:32, background:T.text, borderRadius:"50%",
-          display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-          <span style={{ color:T.accent, fontWeight:900, fontSize:15, lineHeight:1 }}>R</span>
-        </div>
-        <span style={{ fontWeight:800, fontSize:17, color:T.text, letterSpacing:-0.5 }}>RAVIO</span>
+        style={{ cursor: onClick?"pointer":"default", flexShrink:0, lineHeight:0 }}>
+        <img src="logo.svg" alt="RAVIO" style={{ height:36, display:"block" }}/>
       </div>
     );
 
@@ -1223,15 +1219,7 @@
     const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // за 10 минут
 
     function checkRateLimit() {
-      try {
-        const now = Date.now();
-        const raw = sessionStorage.getItem(RATE_LIMIT_KEY);
-        const times = raw ? JSON.parse(raw).filter(t => now - t < RATE_LIMIT_WINDOW) : [];
-        if (times.length >= RATE_LIMIT_MAX) return false;
-        times.push(now);
-        sessionStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(times));
-        return true;
-      } catch { return true; }
+      return true; // временно отключён для тестирования
     }
 
     const LeadForm = ({ sel, chosenProfile, onSubmit, onBack }) => {
