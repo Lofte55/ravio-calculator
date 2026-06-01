@@ -497,10 +497,11 @@
       };
 
       try {
-        const params = new URLSearchParams(row).toString();
-        await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl + "?" + params, {
-          method: "GET",
+        await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl, {
+          method: "POST",
           mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(row),
         }, 20000);
       } catch (e) { console.warn("Google Sheets:", e); }
     }
