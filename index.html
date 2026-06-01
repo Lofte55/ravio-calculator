@@ -442,24 +442,76 @@
 
     async function sendToGoogleSheets(payload) {
       if (!INTEGRATIONS.googleSheetsUrl) return;
+
+      const RU = {
+        // Состояние
+        new_building:     "Новостройка",
+        secondary_normal: "Вторичка (норм)",
+        old_full_repair:  "Старый ремонт",
+        very_bad:         "Убитое состояние",
+        // Путь
+        full_repair:      "Весь ремонт",
+        selected_stages:  "Выбранные этапы",
+        not_sure:         "Ориентир",
+        // Этапы
+        demolition:   "Демонтаж",
+        wasteRemoval: "Вывоз мусора",
+        roughWorks:   "Черновые работы",
+        electric:     "Электрика",
+        plumbing:     "Сантехника",
+        bathroom:     "Санузел",
+        kitchen:      "Кухня",
+        ceiling:      "Потолки",
+        floor:        "Полы",
+        walls:        "Стены",
+        // Связь
+        whatsapp: "WhatsApp",
+        telegram: "Telegram",
+        call:     "Звонок",
+        // Тайминг
+        asap:     "Как можно скорее",
+        month:    "В течение месяца",
+        quarter:  "В этом квартале",
+        planning: "Пока планирую",
+      };
+
+      const ru = (v) => RU[v] || v;
+      const stages = (payload.selectedStages || []).map(ru).join(", ");
+      const fmt = (n) => n ? Math.round(n).toLocaleString("ru-RU") + " ₸" : "—";
+
+      const row = {
+        submittedAt:         new Date().toLocaleString("ru-RU"),
+        userName:            payload.userName,
+        userPhone:           payload.userPhone,
+        userContact:         ru(payload.userContact),
+        userTiming:          ru(payload.userTiming),
+        area:                payload.area ? payload.area + " м²" : "—",
+        rooms:               payload.rooms ? payload.rooms + " комн." : "—",
+        condition:           ru(payload.condition),
+        calculationScope:    ru(payload.calculationScope),
+        selectedStages:      stages,
+        totalMin:            fmt(payload.totalMin),
+        totalMax:            fmt(payload.totalMax),
+        selectedProfileName: payload.selectedProfileName,
+      };
+
       try {
-        // no-cors: Google Apps Script требует этот режим из браузера
         await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, submittedAt: new Date().toISOString() }),
+          body: JSON.stringify(row),
         });
       } catch (e) { console.warn("Google Sheets:", e); }
     }
 
     async function sendEmail(payload) {
       const EMAILJS_PUBLIC_KEY  = "E_3YAA754JvtVGrK7";
-      const EMAILJS_SERVICE_ID  = "";   // ← EmailJS Dashboard → Email Services → Service ID
-      const EMAILJS_TEMPLATE_ID = "";   // ← EmailJS Dashboard → Email Templates → Template ID
+      const EMAILJS_SERVICE_ID  = "service_z0fmaxo";
+      const EMAILJS_TEMPLATE_ID = "template_opxohip";
       if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) return;
       try {
-        await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        await fetchWithTimeout("https://api.emailjs.com/api/v1.0/email/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -467,14 +519,19 @@
             template_id: EMAILJS_TEMPLATE_ID,
             user_id:     EMAILJS_PUBLIC_KEY,
             template_params: {
-              to_email:   "amdk55@yandex.ru",
+              to_email:   "clays.bad97@gmail.com",
               user_name:  payload.userName,
               user_phone: payload.userPhone,
-              area:       payload.area,
-              rooms:      payload.rooms,
-              stages:     (payload.selectedStages || []).join(", "),
-              total_min:  (payload.totalMin || 0).toLocaleString("ru-RU"),
-              total_max:  (payload.totalMax || 0).toLocaleString("ru-RU"),
+              area:       payload.area + " м²",
+              rooms:      payload.rooms + " комн.",
+              condition:  payload.condition,
+              stages:     (payload.selectedStages || []).map(s => ({
+                demolition:"Демонтаж", wasteRemoval:"Вывоз мусора", roughWorks:"Черновые",
+                electric:"Электрика", plumbing:"Сантехника", bathroom:"Санузел",
+                kitchen:"Кухня", ceiling:"Потолки", floor:"Полы", walls:"Стены"
+              }[s] || s)).join(", "),
+              total_min:  (payload.totalMin || 0).toLocaleString("ru-RU") + " ₸",
+              total_max:  (payload.totalMax || 0).toLocaleString("ru-RU") + " ₸",
               contractor: payload.selectedProfileName,
               date:       new Date().toLocaleString("ru-RU"),
             },
