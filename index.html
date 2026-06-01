@@ -406,28 +406,48 @@
         + `🕐 ${new Date().toLocaleString("ru-RU")} · rayo_calc`;
     }
 
+    // Fetch с таймаутом — не висит вечно
+    async function fetchWithTimeout(url, options, ms = 7000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const r = await fetch(url, { ...options, signal: ctrl.signal });
+        return r;
+      } catch (e) {
+        console.warn("fetchWithTimeout:", e.message);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     async function sendToTelegram(lead, sel, result, profile) {
       if (!INTEGRATIONS.telegramBotToken || !INTEGRATIONS.telegramChatId) return;
       try {
-        await fetch(`https://api.telegram.org/bot${INTEGRATIONS.telegramBotToken}/sendMessage`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: INTEGRATIONS.telegramChatId,
-            text: fmtTgMsg(lead, sel, result, profile), parse_mode: "HTML" }),
-        });
+        await fetchWithTimeout(
+          `https://api.telegram.org/bot${INTEGRATIONS.telegramBotToken}/sendMessage`,
+          { method:"POST", headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ chat_id: INTEGRATIONS.telegramChatId,
+              text: fmtTgMsg(lead, sel, result, profile), parse_mode:"HTML" }) }
+        );
       } catch (e) { console.warn("Telegram:", e); }
     }
 
     async function sendToWebhook(payload) {
       if (!INTEGRATIONS.webhookUrl) return;
-      try { await fetch(INTEGRATIONS.webhookUrl, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) }); }
-      catch (e) { console.warn("Webhook:", e); }
+      try {
+        await fetchWithTimeout(INTEGRATIONS.webhookUrl,
+          { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+      } catch (e) { console.warn("Webhook:", e); }
     }
 
     async function sendToGoogleSheets(payload) {
       if (!INTEGRATIONS.googleSheetsUrl) return;
       try {
-        await fetch(INTEGRATIONS.googleSheetsUrl, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+        // no-cors: Google Apps Script требует этот режим из браузера
+        await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, submittedAt: new Date().toISOString() }),
         });
       } catch (e) { console.warn("Google Sheets:", e); }
@@ -611,8 +631,12 @@
     // ═══════════════════════════════════════════════════════════════
     const Logo = ({ onClick }) => (
       <div onClick={onClick} className={onClick ? "rayo-logo" : ""}
-        style={{ cursor: onClick?"pointer":"default", flexShrink:0, lineHeight:0 }}>
-        <img src="logo.svg" alt="RAVIO" style={{ height:36, display:"block" }}/>
+        style={{ cursor: onClick?"pointer":"default", flexShrink:0, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ width:32, height:32, background:T.text, borderRadius:"50%",
+          display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <span style={{ color:T.accent, fontWeight:900, fontSize:15, lineHeight:1 }}>R</span>
+        </div>
+        <span style={{ fontWeight:800, fontSize:17, color:T.text, letterSpacing:-0.5 }}>RAVIO</span>
       </div>
     );
 
