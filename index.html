@@ -442,6 +442,7 @@
 
     async function sendToGoogleSheets(payload) {
       if (!INTEGRATIONS.googleSheetsUrl) return;
+      // Apps Script медленный — даём 20 секунд
 
       const RU = {
         // Состояние
@@ -500,7 +501,7 @@
         await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl + "?" + params, {
           method: "GET",
           mode: "no-cors",
-        });
+        }, 20000);
       } catch (e) { console.warn("Google Sheets:", e); }
     }
 
@@ -1272,7 +1273,7 @@
           source:"rayo_calculator", calculatedAt:new Date().toISOString(),
         };
         console.log("LEAD:", payload);
-        await Promise.all([
+        await Promise.allSettled([
           sendToTelegram(lead, sel, result, chosenProfile),
           sendToWebhook(payload),
           sendToGoogleSheets(payload),
