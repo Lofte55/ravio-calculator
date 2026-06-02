@@ -1082,8 +1082,13 @@
         <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
           <TopBar showBack onBack={onBack} onLogoClick={goMain}
             rightEl={
-              <button onClick={onReset} style={{ fontSize:13, color:T.textSub, background:"none",
-                border:"none", cursor:"pointer", fontWeight:600 }}>Начать сначала</button>
+              <button onClick={onReset} className="rayo-btn-ghost"
+                style={{ display:"flex", alignItems:"center", padding:"7px 14px",
+                  borderRadius:T.rPill, background:"transparent", border:`1.5px solid ${T.border}`,
+                  fontSize:13, fontWeight:600, color:T.text, cursor:"pointer",
+                  whiteSpace:"nowrap", lineHeight:1 }}>
+                Сначала
+              </button>
             }/>
           <div style={{ maxWidth:840, margin:"0 auto", padding: isMobile?"16px 16px 80px":"28px 24px 80px" }}
             className="rayo-anim">
