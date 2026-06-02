@@ -2169,9 +2169,7 @@
                       <NumInput label="Светильники" value={sel.electricLights} onChange={v=>upd("electricLights",v)} suffix="шт"/>
                     </div>
                     <div style={{ fontSize:11, color:T.textMuted, marginTop:10 }}>
-                      ~{CONFIG.independent.prices.electricOutletPrice.toLocaleString()} ₸/розетка ·{" "}
-                      {CONFIG.independent.prices.electricSwitchPrice.toLocaleString()} ₸/выкл ·{" "}
-                      {CONFIG.independent.prices.electricLightPrice.toLocaleString()} ₸/светильник
+                      Если не знаете точное количество — укажите примерно
                     </div>
                   </div>
                 </>)}
@@ -2209,7 +2207,14 @@
 
               {stage === "bathroom" && (<>
                 <StageHeader icon={STAGE_ICONS.bathroom} title="Санузел" subtitle="Расскажите про ваш санузел."/>
-                <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Площадь санузла, м²"/>
+                {sel.bathroomCount === "2" ? (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+                    <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Санузел 1, м²"/>
+                    <ZoneInput value={sa.bathroom2} onChange={v=>updArea("bathroom2",v)} placeholder="Санузел 2, м²"/>
+                  </div>
+                ) : (
+                  <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Площадь санузла, м²"/>
+                )}
 
                 {/* Тип санузла */}
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Планировка</div>
