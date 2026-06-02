@@ -238,30 +238,39 @@
         }
         case "plumbing": {
           if (!sel.plumbing || sel.plumbing === "none") return { cost: 0, available: true };
+          const isPartial = sel.plumbing === "partial";
+          const isFull = sel.plumbing === "full" || sel.plumbing === "from_scratch";
           const meters  = Number(sel.plumbingMeters) || 0;
           const locCoef = CONFIG.coefs.plumbingLocation[sel.plumbingLocation || ""] || 1.0;
+          // from_scratch — коэф. 1.3 к полной замене (нет старых труб, сложнее)
+          const scratchMult = sel.plumbing === "from_scratch" ? 1.3 : 1.0;
           if (meters > 0) {
-            const rate = sel.plumbing === "partial"
-              ? (p.plumbingMeterPartial || 9000)
-              : (p.plumbingMeterFull || 15000);
-            return { cost: meters * rate * locCoef, available: true };
+            const rate = isPartial ? (p.plumbingMeterPartial || 9000) : (p.plumbingMeterFull || 15000);
+            return { cost: meters * rate * locCoef * scratchMult, available: true };
           }
-          return { cost: sel.plumbing === "partial" ? (p.plumbingPartialFixed || 0) : (p.plumbingFullFixed || 0), available: true };
+          const fixed = isPartial ? (p.plumbingPartialFixed || 0) : (p.plumbingFullFixed || 0);
+          return { cost: fixed * scratchMult, available: true };
         }
         case "bathroom": {
           if (!sel.bathroom || sel.bathroom === "none") return { cost: 0, available: true };
           const count = sel.bathroomCount === "2" ? 2 : 1;
           const bCosts = {
-            replace_only: (p.bathroomReplaceFixed || 350000) * count,
-            cosmetic:     (p.bathroomCosmeticFixed || 450000) * count,
-            partial:      (p.bathroomPartialFixed || 800000) * count,
-            full_1:        p.bathroomFullOneFixed || 1200000,
-            full_2:        p.bathroomFullTwoFixed || 2200000,
+            replace_only:  (p.bathroomReplaceFixed || 350000) * count,
+            cosmetic:      (p.bathroomCosmeticFixed || 450000) * count,
+            partial:       (p.bathroomPartialFixed || 800000) * count,
+            full_1:         p.bathroomFullOneFixed || 1200000,
+            full_2:         p.bathroomFullTwoFixed || 2200000,
+            // С нуля = полный ремонт × 1.25 (нет существующих коммуникаций)
+            from_scratch:  Math.round((count === 2 ? (p.bathroomFullTwoFixed||2200000) : (p.bathroomFullOneFixed||1200000)) * 1.25),
           };
           return { cost: bCosts[sel.bathroom] || 0, available: true };
         }
         case "kitchen":
           if (!sel.kitchen || sel.kitchen === "none") return { cost: 0, available: true };
+          if (sel.kitchen === "from_scratch") {
+            // С нуля = с фартуком × 1.2 (дополнительные работы по подводке)
+            return { cost: Math.round((p.kitchenWithApronFixed || 750000) * 1.2), available: true };
+          }
           return { cost: sel.kitchen === "basic" ? (p.kitchenBasicFixed || 0) : (p.kitchenWithApronFixed || 0), available: true };
         case "ceiling":
           if (!sel.ceiling || sel.ceiling === "none") return { cost: 0, available: true };
@@ -828,7 +837,7 @@
             : <div style={{ width:90 }}/>
           }
           <Logo onClick={onLogoClick}/>
-          <div style={{ width:90 }}>{rightEl || null}</div>
+          <div style={{ minWidth:90, display:"flex", justifyContent:"flex-end" }}>{rightEl || null}</div>
         </div>
         {/* Прогресс-бар — показывается только во время wizard */}
         {progress != null && (
@@ -1087,7 +1096,7 @@
                   borderRadius:T.rPill, background:"transparent", border:`1.5px solid ${T.border}`,
                   fontSize:13, fontWeight:600, color:T.text, cursor:"pointer",
                   whiteSpace:"nowrap", lineHeight:1 }}>
-                Сначала
+                Начать сначала
               </button>
             }/>
           <div style={{ maxWidth:840, margin:"0 auto", padding: isMobile?"16px 16px 80px":"28px 24px 80px" }}
@@ -2121,12 +2130,35 @@
               {stage === "electric" && (<>
                 <StageHeader icon={STAGE_ICONS.electric} title="Электрика" subtitle="Проводка, розетки, щиток."/>
 
+                {/* Демонтаж старой проводки */}
+                {sel.selectedStages.includes("demolition") ? (
+                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                    padding:"12px 16px", marginBottom:14 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                      ✓ Демонтаж старой проводки включён в этап «Демонтаж»
+                    </div>
+                  </div>
+                ) : (sel.electricType === "full" || sel.electricType === "partial") ? (
+                  <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
+                    padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                    <div style={{ fontSize:13, color:"#7A5500" }}>
+                      ⚠️ Замена проводки включает демонтаж старой
+                    </div>
+                    <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
+                      style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
+                        background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
+                      + Добавить демонтаж
+                    </button>
+                  </div>
+                ) : null}
+
                 {/* Объём замены */}
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
                 {[
-                  ["none",    "Не трогаем",         "Оставляем как есть"],
-                  ["partial", "Частичная замена",    "Добавить линии, заменить часть"],
-                  ["full",    "Полная замена",        "От щитка до каждой точки"],
+                  ["none",    "Не трогаем",              "Оставляем как есть"],
+                  ["partial", "Частичная замена",         "Добавить линии, заменить часть"],
+                  ["full",    "Полная замена",             "От щитка до каждой точки"],
+                  ["from_scratch", "С нуля — нет коммуникаций", "Электрики нет совсем, прокладываем всё"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.electric} title={t} sub={s}
                     onClick={()=>upd("electricType",v)} active={sel.electricType===v}/>
@@ -2183,6 +2215,29 @@
 
               {stage === "plumbing" && (<>
                 <StageHeader icon={STAGE_ICONS.plumbing} title="Сантехника" subtitle="Трубы, разводка, подключения."/>
+
+                {/* Демонтаж старых труб */}
+                {sel.selectedStages.includes("demolition") ? (
+                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                    padding:"12px 16px", marginBottom:14 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                      ✓ Демонтаж старых труб включён в этап «Демонтаж»
+                    </div>
+                  </div>
+                ) : (sel.plumbing === "full" || sel.plumbing === "partial") ? (
+                  <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
+                    padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                    <div style={{ fontSize:13, color:"#7A5500" }}>
+                      ⚠️ Замена труб включает демонтаж старых
+                    </div>
+                    <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
+                      style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
+                        background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
+                      + Добавить демонтаж
+                    </button>
+                  </div>
+                ) : null}
+
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
                   letterSpacing:"0.06em", marginBottom:10 }}>Где нужны трубы?</div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
@@ -2202,8 +2257,12 @@
                   <NumInput label="Метры труб" value={sel.plumbingMeters}
                     onChange={v=>upd("plumbingMeters",v)} suffix="п/м"/>
                 </div>
-                {[["none","Не трогаем",""],["partial","Частично заменить","Подводка к приборам"],
-                  ["full","Полная замена","Все стояки и разводка"]].map(([v,t,s])=>(
+                {[
+                  ["none",         "Не трогаем",                 "Оставляем как есть"],
+                  ["partial",      "Частично заменить",           "Подводка к приборам"],
+                  ["full",         "Полная замена",               "Все стояки и разводка"],
+                  ["from_scratch", "С нуля — нет коммуникаций",  "Труб нет совсем, прокладываем всё"],
+                ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.plumbing} title={t} sub={s}
                     onClick={()=>upd("plumbing",v)} active={sel.plumbing===v}/>
                 ))}
@@ -2212,6 +2271,29 @@
 
               {stage === "bathroom" && (<>
                 <StageHeader icon={STAGE_ICONS.bathroom} title="Санузел" subtitle="Расскажите про ваш санузел."/>
+
+                {/* Демонтаж старой плитки и сантехники */}
+                {sel.selectedStages.includes("demolition") ? (
+                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                    padding:"12px 16px", marginBottom:14 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                      ✓ Демонтаж старой плитки и сантехники включён в этап «Демонтаж»
+                    </div>
+                  </div>
+                ) : (sel.bathroom && sel.bathroom !== "none" && sel.bathroom !== "from_scratch") ? (
+                  <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
+                    padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                    <div style={{ fontSize:13, color:"#7A5500" }}>
+                      ⚠️ Ремонт санузла включает демонтаж старой плитки
+                    </div>
+                    <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
+                      style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
+                        background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
+                      + Добавить демонтаж
+                    </button>
+                  </div>
+                ) : null}
+
                 {sel.bathroomCount === "2" ? (
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
                     <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Санузел 1, м²"/>
@@ -2266,11 +2348,12 @@
                 {/* Объём работ */}
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
                 {[
-                  ["none",         "Не трогаем",              "Оставляем как есть"],
-                  ["replace_only", "Только замена сантехники", "Смеситель, унитаз, душ/ванна"],
-                  ["cosmetic",     "Косметика",               "Замена смесителей, подкраска, мелочи"],
-                  ["partial",      "Частичный ремонт",        "Часть плитки, сантехника, потолок"],
+                  ["none",         "Не трогаем",                    "Оставляем как есть"],
+                  ["replace_only", "Только замена сантехники",       "Смеситель, унитаз, душ/ванна"],
+                  ["cosmetic",     "Косметика",                     "Замена смесителей, подкраска, мелочи"],
+                  ["partial",      "Частичный ремонт",              "Часть плитки, сантехника, потолок"],
                   ["full_1",       sel.bathroomCount==="2" ? "Полный ремонт обоих" : "Полный ремонт", "Плитка, сантехника, потолок, всё"],
+                  ["from_scratch", "С нуля — санузла не было",      "Новостройка или перепланировка, всё с бетона"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.bathroom} title={t} sub={s}
                     onClick={()=>upd("bathroom",v)} active={sel.bathroom===v}/>
@@ -2281,8 +2364,12 @@
               {stage === "kitchen" && (<>
                 <StageHeader icon={STAGE_ICONS.kitchen} title="Кухня" subtitle="Ремонт кухонной зоны (без мебели и техники)."/>
                 <ZoneInput value={sa.kitchen} onChange={v=>updArea("kitchen",v)} placeholder="Площадь кухонной зоны"/>
-                {[["none","Не трогаем",""],["basic","Обычный ремонт","Стены, пол, потолок"],
-                  ["with_apron","С фартуком","Под кухонный гарнитур"]].map(([v,t,s])=>(
+                {[
+                  ["none",         "Не трогаем",                    "Оставляем как есть"],
+                  ["basic",        "Обычный ремонт",                 "Стены, пол, потолок"],
+                  ["with_apron",   "С фартуком",                    "Под кухонный гарнитур"],
+                  ["from_scratch", "С нуля — кухни не было",        "Новостройка, кухонной зоны нет совсем"],
+                ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.kitchen} title={t} sub={s}
                     onClick={()=>upd("kitchen",v)} active={sel.kitchen===v}/>
                 ))}
