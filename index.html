@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RAVIO — Калькулятор ремонта Павлодар</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+      m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+      m[i].l=1*new Date();
+      for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+      k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109587808','ym');
+    ym(109587808,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",
+      referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109587808" style="position:absolute;left:-9999px;" alt=""/></div></noscript>
+  <!-- /Yandex.Metrika counter -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -177,6 +191,29 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────
+    // АНАЛИТИКА — session_id + события
+    // ─────────────────────────────────────────────
+    function getSid() {
+      try {
+        let sid = localStorage.getItem("ravio_sid");
+        if (!sid) {
+          sid = "s" + Math.random().toString(36).slice(2,9) + Date.now().toString(36);
+          localStorage.setItem("ravio_sid", sid);
+        }
+        return sid;
+      } catch { return "anon"; }
+    }
+
+    function track(event, params = {}) {
+      try {
+        // Яндекс Метрика
+        if (window.ym) ym(109587808, "reachGoal", event, params);
+        // Консоль для отладки
+        console.log("[RAVIO]", event, params);
+      } catch(e) {}
+    }
+
     // РАНЖИРОВАНИЕ
     // ═══════════════════════════════════════════════════════════════
     function scoreContractor(c, stages) {
@@ -1642,7 +1679,10 @@
       const liveResult = (gStep !== "scope" && sel.calculationScope)
         ? calculateTotal(sel, CONFIG.independent) : null;
 
+      const SID = getSid(); // уникальный ID сессии
+
       const goScope = scope => {
+        track("step_scope", { scope, sid:SID });
         upd("calculationScope", scope);
         setTimeout(() => {
           if (scope !== "selected_stages") {
@@ -1656,6 +1696,7 @@
       };
 
       const goCondition = c => {
+        track("step_condition", { condition:c, sid:SID });
         upd("condition", c);
         setTimeout(() => {
           const stages = sel.calculationScope === "selected_stages"
@@ -1668,6 +1709,7 @@
       const [resultLoading, setResultLoading] = useState(false);
       const [editingArea, setEditingArea]     = useState(false);
       const finishMicro = () => {
+        track("step_result", { stages: sel.selectedStages.join(","), scope: sel.calculationScope, sid:SID });
         setResultLoading(true);
         setTimeout(() => {
           setRanked(rankContractors(CONFIG.contractors, sel.selectedStages));
@@ -1738,13 +1780,20 @@
 
       if (gStep === "result") return (
         <ResultScreen sel={sel} rankedContractors={ranked}
-          onChoose={p => { setChosen(p); setAnimKey(k=>k+1); setGStep("lead"); }}
+          onChoose={p => {
+            track("lead_form_open", { contractor: p.name, sid: SID });
+            setChosen(p); setAnimKey(k=>k+1); setGStep("lead");
+          }}
           onBack={() => { setMicroIdx(microSteps.length-1); setAnimKey(k=>k+1); setGStep("micro"); }}
           onReset={reset}/>
       );
       if (gStep === "lead" && chosen) return (
         <LeadForm sel={sel} chosenProfile={chosen}
-          onSubmit={p => { setLeadPayload(p); setAnimKey(k=>k+1); setGStep("success"); }}
+          onSubmit={p => {
+            track("lead_sent", { contractor: chosen.name, scope: sel.calculationScope,
+              stages: sel.selectedStages.join(","), totalMin: p.totalMin, sid: SID });
+            setLeadPayload(p); setAnimKey(k=>k+1); setGStep("success");
+          }}
           onBack={() => { setAnimKey(k=>k+1); setGStep("result"); }}/>
       );
       if (gStep === "success") return (
@@ -1917,7 +1966,7 @@
                   <span>15 м²</span><span>200 м²</span>
                 </div>
                 {errors.area && <div style={{ fontSize:12, color:T.red, marginBottom:10 }}>{errors.area}</div>}
-                <Btn onClick={() => { if(validateArea()) { setAnimKey(k=>k+1); setGStep("rooms"); } }}>
+                <Btn onClick={() => { if(validateArea()) { track("step_area", { area: sel.area, sid:SID }); setAnimKey(k=>k+1); setGStep("rooms"); } }}>
                   Дальше →
                 </Btn>
               </div>
@@ -1937,6 +1986,7 @@
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               {[["1","1 комната"],["2","2 комнаты"],["3","3 комнаты"],["4+","4 и более"]].map(([val,label]) => (
                 <button key={val} onClick={() => {
+                  track("step_rooms", { rooms: val, sid:SID });
                   upd("rooms", val);
                   setTimeout(() => { setAnimKey(k=>k+1); setGStep(sel.calculationScope==="selected_stages"?"stages":"condition"); }, 180);
                 }} className="rayo-scope-card" style={{
