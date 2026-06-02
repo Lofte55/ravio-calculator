@@ -2181,8 +2181,9 @@
                     ))}
                   </div>
 
-                  {/* Состояние проводки */}
-                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Текущая проводка</div>
+                  {/* Состояние проводки — скрыто если "с нуля" */}
+                  {sel.electricType !== "from_scratch" && <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Текущая проводка</div>}
+                  {sel.electricType !== "from_scratch" && (
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
                     {[["new","Новая / нормальная","До 15 лет, медь"],["old","Старая / алюминий","Советская, требует замены"]].map(([v,t,s])=>(
                       <button key={v} onClick={()=>upd("electricAge",v)} style={{
@@ -2196,6 +2197,7 @@
                       </button>
                     ))}
                   </div>
+                  )}
 
                   {/* Количество точек */}
                   <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r, padding:"16px", marginBottom:8 }}>
