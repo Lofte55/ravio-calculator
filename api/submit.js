@@ -282,6 +282,25 @@ module.exports = async (req, res) => {
   }
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // ВРЕМЕННАЯ ДИАГНОСТИКА: GET ?debug=ravio1 — показывает наличие переменных (true/false),
+  // без значений. Убрать после настройки.
+  if (req.method === "GET" && String(req.url || "").includes("debug=ravio1")) {
+    return res.status(200).json({
+      env: {
+        TELEGRAM_BOT_TOKEN:  !!process.env.TELEGRAM_BOT_TOKEN,
+        TELEGRAM_CHAT_ID:    !!process.env.TELEGRAM_CHAT_ID,
+        GOOGLE_SHEETS_URL:   !!process.env.GOOGLE_SHEETS_URL,
+        EMAILJS_SERVICE_ID:  !!process.env.EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID: !!process.env.EMAILJS_TEMPLATE_ID,
+        EMAILJS_PUBLIC_KEY:  !!process.env.EMAILJS_PUBLIC_KEY,
+        EMAILJS_PRIVATE_KEY: !!process.env.EMAILJS_PRIVATE_KEY,
+        EMAILJS_TO_EMAIL:    !!process.env.EMAILJS_TO_EMAIL,
+        ALLOWED_ORIGIN:      !!process.env.ALLOWED_ORIGIN,
+      },
+    });
+  }
+
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ ok:false, error:"method_not_allowed" });
 
