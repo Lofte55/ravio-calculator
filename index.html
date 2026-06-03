@@ -698,8 +698,9 @@
           .rayo-btn-ghost:hover { border-color: #1E2028 !important; color: #1E2028 !important; }
           .rayo-btn-ghost:active { transform: scale(0.96); }
 
-          .rayo-contractor-tab { transition: background .14s, border-color .14s, transform .18s cubic-bezier(0.34,1.45,0.5,1); }
-          .rayo-contractor-tab:hover:not([data-active="true"]) { border-color: #1E2028 !important; transform: translateY(-2px); }
+          /* без translate — иначе горизонтальный скролл-контейнер обрезает карточку */
+          .rayo-contractor-tab { transition: background .14s, border-color .14s, box-shadow .18s, transform .12s ease; }
+          .rayo-contractor-tab:hover:not([data-active="true"]) { border-color: #1E2028 !important; box-shadow: 0 2px 12px rgba(30,32,40,.10); }
           .rayo-contractor-tab:active { transform: scale(0.985); }
 
           .rayo-logo { transition: opacity .15s, transform .18s cubic-bezier(0.34,1.5,0.5,1); }
@@ -896,10 +897,22 @@
     // ═══════════════════════════════════════════════════════════════
     // ПАНЕЛЬ "ВАШИ ПАРАМЕТРЫ"
     // ═══════════════════════════════════════════════════════════════
-    const SummaryPanel = ({ sel, isMobile }) => {
+    const SummaryPanel = ({ sel, isMobile, microSteps = [], microIdx = 0 }) => {
       const scopeLabel = { full_repair:"Весь ремонт", selected_stages:"По этапам", not_sure:"Ориентир" }[sel.calculationScope] || "";
       const condLabel  = { new_building:"Новостройка", secondary_normal:"Вторичка",
                            old_full_repair:"Под ремонт", very_bad:"Убитое" }[sel.condition] || "—";
+
+      // Статус этапа: done (пройден) / active (сейчас) / todo (впереди)
+      const stageState = (key) => {
+        const ms = microSteps || [];
+        if (ms.length === 0) return "todo";
+        const i = ms.indexOf(key);
+        if (i === -1) return "todo";
+        if (i < microIdx) return "done";
+        if (i === microIdx) return "active";
+        return "todo";
+      };
+      const doneCount = (sel.selectedStages || []).filter(s => stageState(s) === "done").length;
 
       if (isMobile) {
         const filled = [sel.calculationScope, sel.area, sel.rooms, sel.condition].filter(Boolean);
@@ -914,8 +927,8 @@
               {sel.condition && <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)" }}>{condLabel}</span>}
             </div>
             {sel.selectedStages.length > 0 && (
-              <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", flexShrink:0 }}>
-                {sel.selectedStages.length} этапов
+              <span style={{ fontSize:11, color:T.accent, fontWeight:700, flexShrink:0 }}>
+                {doneCount}/{sel.selectedStages.length}
               </span>
             )}
           </div>
@@ -946,12 +959,39 @@
                 <span style={{ fontSize:13, color:v==="—"?"rgba(255,255,255,0.2)":"#fff", fontWeight:600 }}>{v}</span>
               </div>
             ))}
-            {sel.selectedStages.length > 0 && (
-              <div style={{ fontSize:12, color:T.accent, fontWeight:600, marginTop:2 }}>
-                {sel.selectedStages.length} этапов выбрано
-              </div>
-            )}
           </div>
+
+          {/* Список этапов с прогрессом */}
+          {sel.selectedStages.length > 0 && (
+            <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:14, marginBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
+                <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>Этапы</span>
+                <span style={{ fontSize:11, color:T.accent, fontWeight:700 }}>{doneCount}/{sel.selectedStages.length}</span>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                {sel.selectedStages.map(s => {
+                  const st = stageState(s);
+                  const color = st === "done" ? T.accent : st === "active" ? "#fff" : "rgba(255,255,255,0.38)";
+                  return (
+                    <div key={s} style={{ display:"flex", alignItems:"center", gap:9 }}>
+                      <span style={{
+                        width:16, height:16, borderRadius:"50%", flexShrink:0,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:10, fontWeight:900, lineHeight:1,
+                        background: st === "done" ? T.accent : st === "active" ? "transparent" : "transparent",
+                        border: st === "done" ? "none" : st === "active" ? `2px solid ${T.accent}` : "2px solid rgba(255,255,255,0.22)",
+                        color: st === "done" ? T.text : "transparent",
+                        animation: st === "active" ? "pulse 1.4s ease-in-out infinite" : "none",
+                      }}>{st === "done" ? "✓" : ""}</span>
+                      <span style={{ fontSize:13, color, fontWeight: st === "todo" ? 500 : 700 }}>
+                        {LABELS[s] || s}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:12 }}>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", display:"flex", alignItems:"center", gap:5 }}>
@@ -963,14 +1003,14 @@
       );
     };
 
-    const WizardWrap = ({ children, sel, liveResult, isMobile, animKey }) => (
+    const WizardWrap = ({ children, sel, liveResult, isMobile, animKey, microSteps = [], microIdx = 0 }) => (
       <div style={{ minHeight:"100vh", background:T.bgPage }}>
-        {isMobile && <SummaryPanel sel={sel} isMobile/>}
+        {isMobile && <SummaryPanel sel={sel} isMobile microSteps={microSteps} microIdx={microIdx}/>}
         <div style={{ maxWidth:960, margin:"0 auto", padding:isMobile?"16px 16px 80px":"28px 24px 80px",
           display: isMobile ? "block" : "grid",
           gridTemplateColumns: "1fr 300px", gap:32 }}>
           <div key={animKey} className="rayo-anim">{children}</div>
-          {!isMobile && <SummaryPanel sel={sel} isMobile={false}/>}
+          {!isMobile && <SummaryPanel sel={sel} isMobile={false} microSteps={microSteps} microIdx={microIdx}/>}
         </div>
       </div>
     );
@@ -1020,7 +1060,7 @@
               Базовая колонка — независимая оценка рынка. Остальные — реальные подрядчики {CONFIG.city}.
             </p>
 
-            <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:8, marginBottom:20 }}>
+            <div style={{ display:"flex", gap:8, overflowX:"auto", padding:"4px 2px 10px", marginBottom:18 }}>
               {allProfiles.map(p => {
                 const r = calculateTotal(sel, p);
                 const isAct = p.id === activeId;
@@ -1781,7 +1821,7 @@
         return (
           <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
             <WizHeader/>
-            <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+            <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
               <StepLabel label="Шаг 1 · Площадь"/>
               <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
                 Какая площадь квартиры?
@@ -1860,7 +1900,7 @@
       if (gStep === "rooms") return (
         <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
           <WizHeader/>
-          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
             <StepLabel label="Шаг 2 · Тип квартиры"/>
             <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>Сколько комнат?</h1>
             <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>Один тап — переход к следующему шагу.</p>
@@ -1888,7 +1928,7 @@
       if (gStep === "stages") return (
         <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
           <WizHeader/>
-          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
             <StepLabel label="Шаг 3 · Выбор этапов"/>
             <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
               Какие этапы вам нужны?
@@ -1922,7 +1962,7 @@
       if (gStep === "condition") return (
         <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
           <WizHeader/>
-          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+          <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
             <StepLabel label={`Шаг ${sel.calculationScope==="selected_stages"?4:3} · Состояние`}/>
             <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
               В каком состоянии квартира?
@@ -1969,7 +2009,7 @@
         return (
           <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
             <WizHeader/>
-            <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey}>
+            <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
               <MiniProg current={microIdx} total={microSteps.length}/>
 
               {stage === "materials" && (<>
