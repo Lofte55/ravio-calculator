@@ -1557,6 +1557,8 @@
       const reset = () => {
         setSel({...INIT_SEL}); setGStep("scope"); setChosen(null);
         setErrors({}); setRanked([]); setLeadPayload(null); setAnimKey(k=>k+1);
+        // Сброс прогресса этапов — иначе панель показывает старые «пройденные» этапы
+        setMicroSteps([]); setMicroIdx(0); setResultLoading(false); setEditingArea(false);
       };
 
       const totalSteps = sel.calculationScope === "selected_stages" ? 6 : 5;
