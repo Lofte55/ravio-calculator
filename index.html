@@ -609,6 +609,31 @@
       return m;
     }
 
+    // Плавный «счёт» числа от текущего значения к target за duration мс.
+    // При смене target анимируется с предыдущего показанного значения — без рывка.
+    function useCountUp(target, duration = 850) {
+      const [val, setVal] = useState(target);
+      const ref = useRef({ raf: 0, from: target });
+      useEffect(() => {
+        const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const from = ref.current.from;
+        if (reduce || from === target) { setVal(target); ref.current.from = target; return; }
+        const t0 = performance.now();
+        const ease = (x) => 1 - Math.pow(1 - x, 3); // easeOutCubic
+        cancelAnimationFrame(ref.current.raf);
+        const tick = (now) => {
+          const p = Math.min(1, (now - t0) / duration);
+          const cur = from + (target - from) * ease(p);
+          setVal(cur);
+          if (p < 1) ref.current.raf = requestAnimationFrame(tick);
+          else ref.current.from = target;
+        };
+        ref.current.raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(ref.current.raf);
+      }, [target, duration]);
+      return val;
+    }
+
     function useStyles() {
       useEffect(() => {
         const id = "rayo-global-styles";
@@ -630,29 +655,62 @@
           input[type=range]::-moz-range-thumb { width:24px; height:24px; background:#F5C842; border-radius:50%; border:none; cursor:pointer; }
           input:focus, button:focus { outline:2px solid #F5C842; outline-offset:2px; }
           input:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline:none; }
-          @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+          /* Пружинистые тайминги */
+          /* spring — мягкий «резиновый» отскок; smooth — плавный выход */
+          @keyframes fadeUp {
+            0%   { opacity:0; transform: translateY(18px) scale(0.985); }
+            55%  { opacity:1; }
+            100% { opacity:1; transform: translateY(0) scale(1); }
+          }
           @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
           @keyframes spin { to { transform: rotate(360deg); } }
           @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-          .rayo-anim { animation: fadeUp 0.28s cubic-bezier(.22,.68,0,1.08) both; }
+          @keyframes popIn {
+            0%   { opacity:0; transform: scale(0.94); }
+            70%  { opacity:1; transform: scale(1.012); }
+            100% { opacity:1; transform: scale(1); }
+          }
+          /* «резиновое» появление шага: лёгкий overshoot через back-out кривую */
+          .rayo-anim { animation: fadeUp 0.46s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
           .rayo-fade { animation: fadeIn 0.2s ease both; }
+          .rayo-pop  { animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
           .rayo-spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(0,0,0,0.2); border-top-color:#1E2028; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
           .rayo-spinner-white { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.25); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
-          .rayo-scope-card { transition: box-shadow .18s, transform .18s, border-color .18s; }
-          .rayo-scope-card:hover { box-shadow: 0 6px 24px rgba(30,32,40,.10); transform: translateY(-2px); }
-          .rayo-option-row { transition: background .14s, border-color .14s; }
+
+          /* Карточки выбора: мягкий подъём на ховере + упругое нажатие */
+          .rayo-scope-card { transition: box-shadow .22s ease, transform .22s cubic-bezier(0.34,1.45,0.5,1), border-color .18s; }
+          .rayo-scope-card:hover { box-shadow: 0 8px 28px rgba(30,32,40,.12); transform: translateY(-3px); }
+          .rayo-scope-card:active { transform: translateY(-1px) scale(0.985); }
+
+          .rayo-option-row { transition: background .14s, border-color .14s, transform .18s cubic-bezier(0.34,1.45,0.5,1); }
           .rayo-option-row:hover:not([data-active="true"]) { border-color: #1E2028 !important; background: #FAFAFA !important; }
-          .rayo-stage-pill { transition: background .14s, border-color .14s; }
+          .rayo-option-row:active { transform: scale(0.99); }
+
+          .rayo-stage-pill { transition: background .14s, border-color .14s, transform .18s cubic-bezier(0.34,1.45,0.5,1); }
           .rayo-stage-pill:hover:not([data-active="true"]) { border-color: #1E2028 !important; }
-          .rayo-btn-main { transition: background .15s, transform .1s; }
-          .rayo-btn-main:hover:not(:disabled) { background: #E8BA20 !important; }
-          .rayo-btn-main:active:not(:disabled) { transform: scale(0.98); }
-          .rayo-btn-ghost { transition: border-color .14s, color .14s; }
+          .rayo-stage-pill:active { transform: scale(0.96); }
+
+          .rayo-btn-main { transition: background .15s, transform .18s cubic-bezier(0.34,1.5,0.5,1), box-shadow .18s; }
+          .rayo-btn-main:hover:not(:disabled) { background: #E8BA20 !important; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(245,200,66,.35); }
+          .rayo-btn-main:active:not(:disabled) { transform: scale(0.96); box-shadow: 0 2px 8px rgba(245,200,66,.25); }
+
+          .rayo-btn-ghost { transition: border-color .14s, color .14s, transform .18s cubic-bezier(0.34,1.5,0.5,1); }
           .rayo-btn-ghost:hover { border-color: #1E2028 !important; color: #1E2028 !important; }
-          .rayo-contractor-tab { transition: background .14s, border-color .14s; }
-          .rayo-contractor-tab:hover:not([data-active="true"]) { border-color: #1E2028 !important; }
-          .rayo-logo { transition: opacity .15s; }
+          .rayo-btn-ghost:active { transform: scale(0.96); }
+
+          .rayo-contractor-tab { transition: background .14s, border-color .14s, transform .18s cubic-bezier(0.34,1.45,0.5,1); }
+          .rayo-contractor-tab:hover:not([data-active="true"]) { border-color: #1E2028 !important; transform: translateY(-2px); }
+          .rayo-contractor-tab:active { transform: scale(0.985); }
+
+          .rayo-logo { transition: opacity .15s, transform .18s cubic-bezier(0.34,1.5,0.5,1); }
           .rayo-logo:hover { opacity: .75; }
+          .rayo-logo:active { transform: scale(0.94); }
+
+          /* Уважаем системную настройку «уменьшить движение» */
+          @media (prefers-reduced-motion: reduce) {
+            .rayo-anim, .rayo-pop { animation-duration: 0.01ms !important; }
+            * { transition-duration: 0.01ms !important; }
+          }
           input[type=number]::-webkit-inner-spin-button,
           input[type=number]::-webkit-outer-spin-button { opacity:1; }
         `;
@@ -930,6 +988,10 @@
       const diff = activeProfile.type !== "baseline"
         ? Math.round((activeResult.grand - indepResult.grand) / indepResult.grand * 100) : 0;
       const isMobile = useIsMobile();
+      // Плавный счёт ключевых цифр (анимируется при появлении и при смене подрядчика)
+      const cuMin   = useCountUp(activeResult.gMin);
+      const cuMax   = useCountUp(activeResult.gMax);
+      const cuPerM2 = useCountUp(sel.area ? Math.round(activeResult.grand / Number(sel.area)) : 0);
       const goMain = () => { window.location.href = INTEGRATIONS.mainSiteUrl; };
 
       return (
@@ -1017,13 +1079,13 @@
                 </div>
                 <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap", marginBottom:6 }}>
                   <span style={{ fontSize:13, color:T.textSub }}>от</span>
-                  <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(activeResult.gMin)}</span>
+                  <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(cuMin)}</span>
                   <span style={{ fontSize:14, color:T.textSub }}>—</span>
-                  <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(activeResult.gMax)} ₸</span>
+                  <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(cuMax)} ₸</span>
                 </div>
                 {sel.area && (
                   <div style={{ fontSize:12, color:T.textMuted, marginBottom:12 }}>
-                    {Math.round(activeResult.grand / Number(sel.area)).toLocaleString("ru-RU")} ₸/м² · полная итоговая цена
+                    {Math.round(cuPerM2).toLocaleString("ru-RU")} ₸/м² · полная итоговая цена
                   </div>
                 )}
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
@@ -1115,9 +1177,9 @@
                           letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>С учётом погрешности ±15%</div>
                         <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
                           <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>мин</span>
-                          <span style={{ fontSize:24, fontWeight:900, color:"#fff" }}>{fmtK(activeResult.gMin)}</span>
+                          <span style={{ fontSize:24, fontWeight:900, color:"#fff" }}>{fmtK(cuMin)}</span>
                           <span style={{ fontSize:14, color:"rgba(255,255,255,0.4)" }}>—</span>
-                          <span style={{ fontSize:24, fontWeight:900, color:T.accent }}>{fmtK(activeResult.gMax)}</span>
+                          <span style={{ fontSize:24, fontWeight:900, color:T.accent }}>{fmtK(cuMax)}</span>
                           <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>тыс ₸</span>
                         </div>
                       </div>

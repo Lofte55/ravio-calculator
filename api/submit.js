@@ -273,12 +273,20 @@ module.exports = async (req, res) => {
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Cache-Control", "no-store");
 
-  // CORS — разрешаем только свой домен (если задан ALLOWED_ORIGIN)
-  const allowed = process.env.ALLOWED_ORIGIN || "";
+  // CORS — разрешаем только свои источники. ALLOWED_ORIGIN можно задать списком
+  // через запятую, например:
+  //   https://calculator-ravio.kz,https://www.calculator-ravio.kz,https://ravio-calculator.vercel.app
+  // Если переменная пуста — ограничение выключено (принимаем отовсюду).
+  const allowedList = (process.env.ALLOWED_ORIGIN || "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
   const origin = req.headers.origin || "";
-  if (allowed) {
-    if (origin && origin !== allowed) return res.status(403).json({ ok:false, error:"forbidden_origin" });
-    res.setHeader("Access-Control-Allow-Origin", allowed);
+  if (allowedList.length) {
+    // origin отсутствует у server-to-server/curl — таких пропускаем (их режет rate-limit);
+    // если origin есть и он чужой — отказ.
+    if (origin && !allowedList.includes(origin)) {
+      return res.status(403).json({ ok:false, error:"forbidden_origin" });
+    }
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
