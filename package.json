@@ -1,0 +1,9 @@
+{
+  "name": "ravio-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RAVIO — калькулятор ремонта (Павлодар). Фронтенд + защищённый бэкенд приёма заявок.",
+  "engines": {
+    "node": ">=18"
+  }
+}

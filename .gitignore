@@ -1,0 +1,8 @@
+# Секреты — НИКОГДА не коммитить
+.env
+.env.local
+.env*.local
+
+# Зависимости и сборка
+node_modules/
+.vercel/

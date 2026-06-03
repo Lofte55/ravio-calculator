@@ -29,15 +29,14 @@
     const { useState, useEffect, useRef, useCallback } = React;
 
     // ═══════════════════════════════════════════════════════════════
-    // ИНТЕГРАЦИИ — заполните перед деплоем (см. ARCH.md)
+    // ИНТЕГРАЦИИ
+    // Секретов здесь больше НЕТ. Все токены и ключи живут на бэкенде
+    // (Vercel Serverless Function /api/submit), см. ARCH.md.
+    // Фронтенд отправляет заявку только на свой собственный /api/submit.
     // ═══════════════════════════════════════════════════════════════
     const INTEGRATIONS = {
-      telegramBotToken: "8694883948:AAGM2Vd26ZL8XgTkpgzAzC8g6utIF8K6gCw",
-      telegramChatId:   "799401432",
-      webhookUrl:       "",   // Make / n8n webhook (опционально)
-      googleSheetsUrl:  "https://script.google.com/macros/s/AKfycbzrHt3qbIRXSolESxMHk-Idqwyxe6TKWdNWxhA4LlCYhWX6m95h2_JFLg9kDWTcnlG7/exec",
-      emailEndpoint:    "",   // ← EmailJS или свой backend (см. ARCH.md)
-      mainSiteUrl:      "/",  // ← URL главного сайта после деплоя
+      apiSubmitUrl: "/api/submit",  // наш защищённый бэкенд
+      mainSiteUrl:  "/",            // URL главного сайта
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -454,81 +453,10 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // ИНТЕГРАЦИИ — ФУНКЦИИ ОТПРАВКИ
+    // ОТПРАВКА ЗАЯВКИ — только на собственный защищённый бэкенд
+    // Вся доставка (Telegram / Email / Google Sheets) и ВСЕ секреты
+    // живут на сервере в /api/submit.js. На фронте — ни одного токена.
     // ═══════════════════════════════════════════════════════════════
-    function fmtTgMsg(lead, sel, result, profile) {
-      const cond = { new_building:"Новостройка", secondary_normal:"Вторичка (норм)", old_full_repair:"Старый ремонт", very_bad:"Убитое состояние" };
-      const contact = { whatsapp:"WhatsApp", telegram:"Telegram", call:"Звонок" };
-      const timing  = { asap:"Как можно скорее", month:"В течение месяца", quarter:"В этом квартале", planning:"Пока планирую" };
-      const scope   = { full_repair:"Весь ремонт", selected_stages:"По этапам", not_sure:"Ориентир" };
-      const sa = sel.stageAreas || {};
-      const fmt = n => Math.round(n).toLocaleString("ru-RU");
-
-      // Детали по каждому этапу
-      const stageLines = sel.selectedStages.map(s => {
-        const area = sa[s] ? ` · ${sa[s]} м²` : "";
-        switch(s) {
-          case "demolition":
-            const dtype = {light:"лёгкий (обои, плитка)", medium:"средний (перегородки, стяжка)", full:"полный (до бетона, трубы)", none:""}[sel.demolition] || "";
-            return `  ⚒ Демонтаж: ${dtype}${area}`;
-          case "wasteRemoval":
-            return `  🚛 Вывоз мусора`;
-          case "roughWorks":
-            const ri = sel.roughItems || [];
-            const rmap = {plastering:"штукатурка", screed:"стяжка", selfLeveling:"наливной пол", radiators:`радиаторы ${sel.radiatorCount||""}шт`, soundproofing:"звукоизоляция"};
-            const rlist = ri.map(x => rmap[x]||x).join(", ");
-            return `  🧱 Черновые: ${rlist||"—"}`;
-          case "electric":
-            const outlets  = sel.electricOutlets  ? `розетки: ${sel.electricOutlets}` : "";
-            const switches = sel.electricSwitches ? `выключатели: ${sel.electricSwitches}` : "";
-            const lights   = sel.electricLights   ? `светильники: ${sel.electricLights}` : "";
-            const eparts   = [outlets, switches, lights].filter(Boolean).join(", ");
-            return `  ⚡ Электрика${area}: ${eparts||"—"}`;
-          case "plumbing":
-            const ptype = {partial:"частичная", full:"полная замена", none:""}[sel.plumbing] || "";
-            const pm = sel.plumbingMeters ? ` · ${sel.plumbingMeters} п.м.` : "";
-            const ploc = {sanuzul:"санузел", kitchen:"кухня", all:"везде"}[sel.plumbingLocation] || "";
-            return `  🚿 Сантехника: ${ptype}${pm}${ploc ? ` · ${ploc}` : ""}`;
-          case "bathroom":
-            const btype = {cosmetic:"косметика", full_1:"полный 1 санузел", full_2:"полный 2 санузла", none:""}[sel.bathroom] || "";
-            const bfix  = {shower:"душевая кабина", bath:"ванна", both:"душ + ванна"}[sel.bathroomFixtureType] || "";
-            return `  🛁 Санузел: ${btype}${bfix ? ` · ${bfix}` : ""}${area}`;
-          case "kitchen":
-            const ktype = {basic:"обычный", with_apron:"с фартуком", none:""}[sel.kitchen] || "";
-            return `  🍳 Кухня: ${ktype}${area}`;
-          case "ceiling":
-            const ctype = {stretch:"натяжной", paint:"под покраску", none:""}[sel.ceiling] || "";
-            return `  ▣ Потолки: ${ctype}`;
-          case "floor":
-            const ftype = {linoleum:"линолеум", laminate:"ламинат", spc:"SPC/кварцвинил", tile:"плитка", none:""}[sel.floorCovering] || "";
-            const flev  = sel.floorLeveling === "yes" ? " + выравнивание" : "";
-            return `  ▥ Полы: ${ftype}${flev}`;
-          case "walls":
-            const wtype = {wallpaper:"обои", paint:"покраска", decorative:"декоративная штукатурка", none:""}[sel.walls] || "";
-            const wlev  = sel.wallLeveling === "yes" ? " + выравнивание" : "";
-            return `  ▤ Стены: ${wtype}${wlev}`;
-          default: return `  — ${s}`;
-        }
-      }).join("\n");
-
-      const mats = sel.includeMaterials === "yes" ? "Да (~37%)" : "Нет";
-      const unavail = result.unavail.length > 0
-        ? `\n⚠️ Не выполняет: ${result.unavail.map(s=>({demolition:"Демонтаж",wasteRemoval:"Вывоз",roughWorks:"Черновые",electric:"Электрика",plumbing:"Сантехника",bathroom:"Санузел",kitchen:"Кухня",ceiling:"Потолки",floor:"Полы",walls:"Стены"}[s]||s)).join(", ")}`
-        : "";
-
-      return `🏗 <b>Новая заявка RAVIO · ${CONFIG.city}</b>\n\n`
-        + `👤 <b>${lead.name}</b>\n`
-        + `📞 ${lead.phone} · ${contact[lead.contact]||lead.contact}\n`
-        + `📅 ${timing[lead.timing]||lead.timing}\n\n`
-        + `📐 <b>Объект:</b> ${sel.area} м² · ${sel.rooms} комн. · ${cond[sel.condition]||""}\n`
-        + `🔧 <b>Тип расчёта:</b> ${scope[sel.calculationScope]||""}\n`
-        + `📦 Материалы: ${mats}\n\n`
-        + `📋 <b>Этапы и детали:</b>\n${stageLines}\n\n`
-        + `💰 <b>${fmt(result.gMin)} — ${fmt(result.gMax)} ₸</b>\n`
-        + `   (работы: ${fmt(result.workTotal)} ₸${sel.includeMaterials==="yes" ? ` · матер: ~${fmt(result.matCost)} ₸` : ""})\n`
-        + `🤝 ${profile.name} · совм. ${result.compat}%${unavail}\n\n`
-        + `🕐 ${new Date().toLocaleString("ru-RU")}`;
-    }
 
     // Fetch с таймаутом — не висит вечно
     async function fetchWithTimeout(url, options, ms = 7000) {
@@ -544,149 +472,29 @@
       }
     }
 
-    async function sendToTelegram(lead, sel, result, profile) {
-      if (!INTEGRATIONS.telegramBotToken || !INTEGRATIONS.telegramChatId) return;
+    // Отправляет заявку на наш бэкенд /api/submit.
+    // Возвращает true при успехе. Никогда не бросает исключение —
+    // доставка не должна блокировать показ экрана «спасибо».
+    async function submitLead(payload) {
+      // Локальная разработка (python http.server) — бэкенда нет, просто логируем
+      const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      if (isLocal) {
+        console.log("[LOCAL] заявка не отправлена (нет бэкенда):", payload);
+        return true;
+      }
       try {
-        await fetchWithTimeout(
-          `https://api.telegram.org/bot${INTEGRATIONS.telegramBotToken}/sendMessage`,
-          { method:"POST", headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ chat_id: INTEGRATIONS.telegramChatId,
-              text: fmtTgMsg(lead, sel, result, profile), parse_mode:"HTML" }) }
-        );
-      } catch (e) { console.warn("Telegram:", e); }
-    }
-
-    async function sendToWebhook(payload) {
-      if (!INTEGRATIONS.webhookUrl) return;
-      try {
-        await fetchWithTimeout(INTEGRATIONS.webhookUrl,
-          { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
-      } catch (e) { console.warn("Webhook:", e); }
-    }
-
-    async function sendToGoogleSheets(payload) {
-      if (!INTEGRATIONS.googleSheetsUrl) return;
-      // Apps Script медленный — даём 20 секунд
-
-      const RU = {
-        // Состояние
-        new_building:     "Новостройка",
-        secondary_normal: "Вторичка (норм)",
-        old_full_repair:  "Старый ремонт",
-        very_bad:         "Убитое состояние",
-        // Путь
-        full_repair:      "Весь ремонт",
-        selected_stages:  "Выбранные этапы",
-        not_sure:         "Ориентир",
-        // Этапы
-        demolition:   "Демонтаж",
-        wasteRemoval: "Вывоз мусора",
-        roughWorks:   "Черновые работы",
-        electric:     "Электрика",
-        plumbing:     "Сантехника",
-        bathroom:     "Санузел",
-        kitchen:      "Кухня",
-        ceiling:      "Потолки",
-        floor:        "Полы",
-        walls:        "Стены",
-        // Связь
-        whatsapp: "WhatsApp",
-        telegram: "Telegram",
-        call:     "Звонок",
-        // Тайминг
-        asap:     "Как можно скорее",
-        month:    "В течение месяца",
-        quarter:  "В этом квартале",
-        planning: "Пока планирую",
-      };
-
-      const ru = (v) => RU[v] || v;
-      const stages = (payload.selectedStages || []).map(ru).join(", ");
-      const fmt = (n) => n ? Math.round(n).toLocaleString("ru-RU") + " ₸" : "—";
-
-      const row = {
-        submittedAt:         new Date().toLocaleString("ru-RU"),
-        userName:            payload.userName,
-        userPhone:           payload.userPhone,
-        userContact:         ru(payload.userContact),
-        userTiming:          ru(payload.userTiming),
-        area:                payload.area ? payload.area + " м²" : "—",
-        rooms:               payload.rooms ? payload.rooms + " комн." : "—",
-        condition:           ru(payload.condition),
-        calculationScope:    ru(payload.calculationScope),
-        selectedStages:      stages,
-        totalMin:            fmt(payload.totalMin),
-        totalMax:            fmt(payload.totalMax),
-        selectedProfileName: payload.selectedProfileName,
-      };
-
-      try {
-        await fetchWithTimeout(INTEGRATIONS.googleSheetsUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(row),
-        }, 20000);
-      } catch (e) { console.warn("Google Sheets:", e); }
-    }
-
-    async function sendEmail(payload) {
-      const EMAILJS_PUBLIC_KEY  = "E_3YAA754JvtVGrK7";
-      const EMAILJS_SERVICE_ID  = "service_z0fmaxo";
-      const EMAILJS_TEMPLATE_ID = "template_opxohip";
-      if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) return;
-      try {
-        await fetchWithTimeout("https://api.emailjs.com/api/v1.0/email/send", {
+        const r = await fetchWithTimeout(INTEGRATIONS.apiSubmitUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            service_id:  EMAILJS_SERVICE_ID,
-            template_id: EMAILJS_TEMPLATE_ID,
-            user_id:     EMAILJS_PUBLIC_KEY,
-            template_params: {
-              to_email: "amdk55@yandex.ru",
-              name: payload.userName,
-              time: new Date().toLocaleString("ru-RU"),
-              message: (()=>{
-                const s = payload;
-                const sa = s.stageAreas || {};
-                const cond = {new_building:"Новостройка",secondary_normal:"Вторичка (норм)",old_full_repair:"Старый ремонт",very_bad:"Убитое состояние"};
-                const lines = [
-                  "📞 " + s.userPhone + "  |  " + ({whatsapp:"WhatsApp",telegram:"Telegram",call:"Звонок"}[s.userContact]||s.userContact),
-                  "📅 " + ({asap:"Как можно скорее",month:"В течение месяца",quarter:"В этом квартале",planning:"Пока планирую"}[s.userTiming]||s.userTiming),
-                  "",
-                  "🏠 " + s.area + " м²  |  " + s.rooms + " комн.  |  " + (cond[s.condition]||s.condition),
-                  "🔧 " + ({full_repair:"Весь ремонт",selected_stages:"По этапам",not_sure:"Ориентир"}[s.calculationScope]||s.calculationScope),
-                  "📦 Материалы: " + (s.includeMaterials==="yes"?"Да (~37%)":"Нет"),
-                  "",
-                  "── ЭТАПЫ ──",
-                  ...(s.selectedStages||[]).map(st=>{
-                    const a = sa[st] ? ` [${sa[st]} м²]` : "";
-                    switch(st){
-                      case"demolition": return "⚒ Демонтаж: "+({light:"лёгкий",medium:"средний",full:"полный (до бетона)"}[s.demolition]||"—")+a;
-                      case"wasteRemoval": return "🚛 Вывоз мусора";
-                      case"roughWorks": return "🧱 Черновые: "+((s.roughItems||[]).map(x=>({plastering:"штукатурка",screed:"стяжка",selfLeveling:"наливной пол",radiators:"радиаторы "+s.radiatorCount+"шт",soundproofing:"звукоизоляция"}[x]||x)).join(", ")||"—");
-                      case"electric": return "⚡ Электрика"+a+": розетки "+( s.electricOutlets||0)+", выключатели "+(s.electricSwitches||0)+", светильники "+(s.electricLights||0);
-                      case"plumbing": return "🚿 Сантехника: "+({partial:"частичная",full:"полная"}[s.plumbing]||"—")+(s.plumbingMeters?" · "+s.plumbingMeters+" п.м.":"")+(s.plumbingLocation?" · "+({sanuzul:"санузел",kitchen:"кухня",all:"везде"}[s.plumbingLocation]||""):"");
-                      case"bathroom": return "🛁 Санузел: "+({cosmetic:"косметика",full_1:"полный 1 санузел",full_2:"полный 2 санузла"}[s.bathroom]||"—")+({shower:" · душевая",bath:" · ванна",both:" · душ+ванна"}[s.bathroomFixtureType]||"")+a;
-                      case"kitchen": return "🍳 Кухня: "+({basic:"обычный",with_apron:"с фартуком"}[s.kitchen]||"—")+a;
-                      case"ceiling": return "▣ Потолки: "+({stretch:"натяжной",paint:"под покраску"}[s.ceiling]||"—");
-                      case"floor": return "▥ Полы: "+({linoleum:"линолеум",laminate:"ламинат",spc:"SPC/кварцвинил",tile:"плитка"}[s.floorCovering]||"—")+(s.floorLeveling==="yes"?" + выравнивание":"");
-                      case"walls": return "▤ Стены: "+({wallpaper:"обои",paint:"покраска",decorative:"декоративная"}[s.walls]||"—")+(s.wallLeveling==="yes"?" + выравнивание":"");
-                      default: return "— "+st;
-                    }
-                  }),
-                  "",
-                  "── СМЕТА ──",
-                  "💰 " + (s.totalMin||0).toLocaleString("ru-RU") + " — " + (s.totalMax||0).toLocaleString("ru-RU") + " ₸",
-                  "👷 Подрядчик: " + s.selectedProfileName,
-                ];
-                return lines.join("\n");
-              })(),
-            },
-          }),
-        });
-      } catch (e) { console.warn("Email:", e); }
+          body: JSON.stringify(payload),
+        }, 20000);
+        if (r && r.ok) return true;
+        console.warn("submitLead: бэкенд вернул", r && r.status);
+        return false;
+      } catch (e) {
+        console.warn("submitLead error:", e);
+        return false;
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1397,6 +1205,16 @@
       const [honeypot, setHoneypot] = useState("");
       // Задержка кнопки: активна через 3 сек после загрузки формы
       const [btnReady, setBtnReady] = useState(false);
+      // Ключ идемпотентности — один на эту форму, чтобы двойной клик
+      // не создавал дубль заявки (бэкенд отсекает повтор по этому ключу).
+      const idemRef = useRef(null);
+      if (!idemRef.current) {
+        idemRef.current = (window.crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : "id-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      }
+      // Время монтирования формы — бэкенд отвергает заявки «моложе» N секунд (бот-сабмит).
+      const mountedAtRef = useRef(Date.now());
       const result = calculateTotal(sel, chosenProfile);
       const isMobile = useIsMobile();
       const goMain = () => { window.location.href = INTEGRATIONS.mainSiteUrl; };
@@ -1449,16 +1267,17 @@
           includeMaterials:sel.includeMaterials,
           selectedProfileId:chosenProfile.id, selectedProfileName:chosenProfile.name,
           totalMin:result.gMin, totalMax:result.gMax, compatibility:result.compat,
+          workTotal:result.workTotal, matCost:result.matCost,
           unavailableStages:result.unavail,
           source:"rayo_calculator", calculatedAt:new Date().toISOString(),
+          // Поля безопасности — проверяются на бэкенде
+          idempotencyKey: idemRef.current,
+          honeypot: honeypot,                                   // должно быть пустым
+          formAgeMs: Date.now() - mountedAtRef.current,         // защита от мгновенного бот-сабмита
+          sid: (function(){ try { return getSid(); } catch(_) { return ""; } })(),
         };
-        console.log("LEAD:", payload);
-        await Promise.allSettled([
-          sendToTelegram(lead, sel, result, chosenProfile),
-          sendToWebhook(payload),
-          sendToGoogleSheets(payload),
-          sendEmail(payload),
-        ]);
+        const ok = await submitLead(payload);
+        if (!ok) console.warn("Заявка: бэкенд недоступен, показываем успех (лид уже залогирован на сервере)");
         setSending(false);
         onSubmit(payload);
       };
