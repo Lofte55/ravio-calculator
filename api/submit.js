@@ -160,29 +160,45 @@ function validate(b) {
       matCost: Number(b.matCost) || 0,
       compatibility: Number(b.compatibility) || 0,
       unavailableStages: Array.isArray(b.unavailableStages) ? b.unavailableStages.filter(s=>ALLOWED.stages.includes(s)) : [],
+      // стоимость по этапам — только разрешённые ключи, числовые значения
+      stageCosts: (b.stageCosts && typeof b.stageCosts === "object")
+        ? Object.fromEntries(Object.entries(b.stageCosts)
+            .filter(([k]) => ALLOWED.stages.includes(k))
+            .map(([k, v]) => [k, Number(v) || 0])) : {},
       sid: str(b.sid, 40),
     },
   };
 }
 
-// ── Сборка детальных строк по этапам ────────────────────────────────────
+// ── Сборка детальных строк по этапам (с ценой по каждому) ────────────────
+const STAGE_ORDER = ["demolition","wasteRemoval","roughWorks","electric","plumbing",
+                     "bathroom","kitchen","ceiling","floor","walls"];
 function stageLines(s) {
   const sa = s.stageAreas || {};
-  return (s.selectedStages || []).map((st) => {
+  const costs = s.stageCosts || {};
+  // показываем в логическом порядке этапов
+  const ordered = [...(s.selectedStages || [])].sort(
+    (x, y) => STAGE_ORDER.indexOf(x) - STAGE_ORDER.indexOf(y)
+  );
+  return ordered.map((st) => {
     const a = sa[st] ? ` · ${sa[st]} м²` : "";
-    switch (st) {
-      case "demolition": return `  ⚒ Демонтаж: ${({light:"лёгкий (обои, плитка)",medium:"средний (перегородки, стяжка)",full:"полный (до бетона, трубы)"}[s.demolition]||"—")}${a}`;
-      case "wasteRemoval": return `  🚛 Вывоз мусора`;
-      case "roughWorks": return `  🧱 Черновые: ${((s.roughItems||[]).map(x=>({plastering:"штукатурка",screed:"стяжка",selfLeveling:"наливной пол",radiators:"радиаторы "+(s.radiatorCount||"")+"шт",soundproofing:"звукоизоляция"}[x]||x)).join(", ")||"—")}`;
-      case "electric": return `  ⚡ Электрика${a}: розетки ${s.electricOutlets||0}, выключатели ${s.electricSwitches||0}, светильники ${s.electricLights||0}`;
-      case "plumbing": return `  🚿 Сантехника: ${({partial:"частичная",full:"полная",from_scratch:"с нуля"}[s.plumbing]||"—")}${s.plumbingMeters?` · ${s.plumbingMeters} п.м.`:""}${s.plumbingLocation?` · ${({sanuzul:"санузел",kitchen:"кухня",all:"везде"}[s.plumbingLocation]||"")}`:""}`;
-      case "bathroom": return `  🛁 Санузел: ${({replace_only:"замена сантехники",cosmetic:"косметика",partial:"частичный",full_1:"полный",full_2:"полный 2 санузла",from_scratch:"с нуля"}[s.bathroom]||"—")}${({shower:" · душевая",bath:" · ванна",both:" · душ+ванна"}[s.bathroomFixtureType]||"")}${a}`;
-      case "kitchen": return `  🍳 Кухня: ${({basic:"обычный",with_apron:"с фартуком",from_scratch:"с нуля"}[s.kitchen]||"—")}${a}`;
-      case "ceiling": return `  ▣ Потолки: ${({stretch:"натяжной",paint:"под покраску",gypsum:"гипсокартон"}[s.ceiling]||"—")}`;
-      case "floor": return `  ▥ Полы: ${({linoleum:"линолеум",laminate:"ламинат",spc:"SPC/кварцвинил",tile:"плитка"}[s.floorCovering]||"—")}${s.floorLeveling==="yes"?" + выравнивание":""}`;
-      case "walls": return `  ▤ Стены: ${({wallpaper:"обои",paint:"покраска",decorative:"декоративная"}[s.walls]||"—")}${s.wallLeveling==="yes"?" + штукатурка":""}`;
-      default: return `  — ${st}`;
-    }
+    const desc = (() => {
+      switch (st) {
+        case "demolition": return `  ⚒ Демонтаж: ${({light:"лёгкий (обои, плитка)",medium:"средний (перегородки, стяжка)",full:"полный (до бетона, трубы)"}[s.demolition]||"—")}${a}`;
+        case "wasteRemoval": return `  🚛 Вывоз мусора`;
+        case "roughWorks": return `  🧱 Черновые: ${((s.roughItems||[]).map(x=>({plastering:"штукатурка",screed:"стяжка",selfLeveling:"наливной пол",radiators:"радиаторы "+(s.radiatorCount||"")+"шт",soundproofing:"звукоизоляция"}[x]||x)).join(", ")||"—")}`;
+        case "electric": return `  ⚡ Электрика${a}: розетки ${s.electricOutlets||0}, выключатели ${s.electricSwitches||0}, светильники ${s.electricLights||0}`;
+        case "plumbing": return `  🚿 Сантехника: ${({partial:"частичная",full:"полная",from_scratch:"с нуля"}[s.plumbing]||"—")}${s.plumbingMeters?` · ${s.plumbingMeters} п.м.`:""}${s.plumbingLocation?` · ${({sanuzul:"санузел",kitchen:"кухня",all:"везде"}[s.plumbingLocation]||"")}`:""}`;
+        case "bathroom": return `  🛁 Санузел: ${({replace_only:"замена сантехники",cosmetic:"косметика",partial:"частичный",full_1:"полный",full_2:"полный 2 санузла",from_scratch:"с нуля"}[s.bathroom]||"—")}${({shower:" · душевая",bath:" · ванна",both:" · душ+ванна"}[s.bathroomFixtureType]||"")}${a}`;
+        case "kitchen": return `  🍳 Кухня: ${({basic:"обычный",with_apron:"с фартуком",from_scratch:"с нуля"}[s.kitchen]||"—")}${a}`;
+        case "ceiling": return `  ▣ Потолки: ${({stretch:"натяжной",paint:"под покраску",gypsum:"гипсокартон"}[s.ceiling]||"—")}`;
+        case "floor": return `  ▥ Полы: ${({linoleum:"линолеум",laminate:"ламинат",spc:"SPC/кварцвинил",tile:"плитка"}[s.floorCovering]||"—")}${s.floorLeveling==="yes"?" + выравнивание":""}`;
+        case "walls": return `  ▤ Стены: ${({wallpaper:"обои",paint:"покраска",decorative:"декоративная"}[s.walls]||"—")}${s.wallLeveling==="yes"?" + штукатурка":""}`;
+        default: return `  — ${st}`;
+      }
+    })();
+    const c = Number(costs[st]) || 0;
+    return desc + (c > 0 ? `  —  ${money(c)}` : "");
   }).join("\n");
 }
 

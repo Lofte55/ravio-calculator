@@ -1273,6 +1273,10 @@
           selectedProfileId:chosenProfile.id, selectedProfileName:chosenProfile.name,
           totalMin:result.gMin, totalMax:result.gMax, compatibility:result.compat,
           workTotal:result.workTotal, matCost:result.matCost,
+          // Стоимость по каждому этапу (для подрядчика в заявке)
+          stageCosts: Object.fromEntries(
+            Object.entries(result.breakdown || {}).map(([k, v]) => [k, Math.round(v.cost) || 0])
+          ),
           unavailableStages:result.unavail,
           source:"rayo_calculator", calculatedAt:new Date().toISOString(),
           // Поля безопасности — проверяются на бэкенде
