@@ -812,6 +812,10 @@
         return "todo";
       };
       const doneCount = (sel.selectedStages || []).filter(s => stageState(s) === "done").length;
+      // Показываем этапы в том же порядке, в котором их проходит визард (STAGE_ORDER),
+      // а не в порядке кликов пользователя.
+      const orderedStages = [...(sel.selectedStages || [])]
+        .sort((a, b) => STAGE_ORDER.indexOf(a) - STAGE_ORDER.indexOf(b));
 
       if (isMobile) {
         const filled = [sel.calculationScope, sel.area, sel.rooms, sel.condition].filter(Boolean);
@@ -868,7 +872,7 @@
                 <span style={{ fontSize:11, color:T.accent, fontWeight:700 }}>{doneCount}/{sel.selectedStages.length}</span>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-                {sel.selectedStages.map(s => {
+                {orderedStages.map(s => {
                   const st = stageState(s);
                   const color = st === "done" ? T.accent : st === "active" ? "#fff" : "rgba(255,255,255,0.38)";
                   return (
