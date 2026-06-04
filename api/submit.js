@@ -198,7 +198,9 @@ function stageLines(s) {
       }
     })();
     const c = Number(costs[st]) || 0;
-    return desc + (c > 0 ? `  —  ${money(c)}` : "");
+    const unavailable = (s.unavailableStages || []).includes(st);
+    const suffix = unavailable ? "  —  ⚠️ не выполняет" : (c > 0 ? `  —  ${money(c)}` : "");
+    return desc + suffix;
   }).join("\n");
 }
 
