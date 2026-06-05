@@ -652,6 +652,46 @@
     function applyLangFont() {
       try { document.body.classList.toggle("lang-kz", LANG === "kz"); } catch(_) {}
     }
+    // DOM-переводчик: ловит все статические русские строки, которые есть в словаре,
+    // даже если они не обёрнуты tr(). Запускается после каждого рендера (см. root).
+    function translateDOM() {
+      const root = document.getElementById("root");
+      if (!root) return;
+      const dict = (window.RAVIO_LANG && window.RAVIO_LANG.kz) || {};
+      const kz = LANG === "kz";
+      // 1) текстовые узлы (с сохранением русского оригинала для возврата)
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      const nodes = [];
+      let n; while ((n = walker.nextNode())) nodes.push(n);
+      for (const node of nodes) {
+        const raw = node.nodeValue;
+        if (!raw) continue;
+        if (kz) {
+          const key = raw.trim();
+          if (key && dict[key]) {
+            if (node._ruOrig == null) node._ruOrig = raw;
+            node.nodeValue = raw.replace(key, dict[key]);
+          }
+        } else if (node._ruOrig != null) {
+          node.nodeValue = node._ruOrig;
+          node._ruOrig = null;
+        }
+      }
+      // 2) placeholder у input
+      root.querySelectorAll("input[placeholder]").forEach(inp => {
+        const ph = inp.getAttribute("placeholder");
+        if (!ph) return;
+        if (kz) {
+          if (dict[ph.trim()]) {
+            if (inp._phOrig == null) inp._phOrig = ph;
+            inp.setAttribute("placeholder", dict[ph.trim()]);
+          }
+        } else if (inp._phOrig != null) {
+          inp.setAttribute("placeholder", inp._phOrig);
+          inp._phOrig = null;
+        }
+      });
+    }
     function setLang(l) {
       if (l === LANG) return;
       LANG = l;
@@ -1542,6 +1582,8 @@
         langListeners.add(fn);
         return () => langListeners.delete(fn);
       }, []);
+      // После каждого рендера переводим оставшиеся русские строки (если язык KZ)
+      React.useLayoutEffect(() => { translateDOM(); });
       const isMobile = useIsMobile();
       useStyles();
 
