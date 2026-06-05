@@ -1005,10 +1005,10 @@
             </div>
             <StepLabel label="Результат"/>
             <h1 style={{ fontSize:isMobile?26:32, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.5 }}>
-              Сравните подрядчиков
+              {tr("Сравните подрядчиков")}
             </h1>
             <p style={{ fontSize:14, color:T.textSub, marginBottom:20, lineHeight:1.6 }}>
-              Базовая колонка — независимая оценка рынка. Остальные — реальные подрядчики {CONFIG.city}.
+              {tr("Базовая колонка — независимая оценка рынка. Остальные — реальные подрядчики")} {CONFIG.city}.
             </p>
 
             <div style={{ display:"flex", gap:8, overflowX:"auto", padding:"4px 2px 10px", marginBottom:18 }}>
@@ -1041,7 +1041,7 @@
                         borderRadius:T.rPill,
                         background: isAct ? "rgba(255,255,255,0.12)" : compatBg,
                         color: isAct ? "#ccc" : compatColor }}>
-                        {r.compat}% совмест.
+                        {r.compat}% {tr("совмест.")}
                       </div>
                     )}
                     {p.rating && (
@@ -1050,7 +1050,7 @@
                     {/* Подсказка кликабельности для неактивных */}
                     {!isAct && (
                       <div style={{ fontSize:10, color:T.textMuted, marginTop:5, display:"flex", alignItems:"center", gap:3 }}>
-                        Смотреть смету <span style={{ fontSize:11 }}>↓</span>
+                        {tr("Смотреть смету")} <span style={{ fontSize:11 }}>↓</span>
                       </div>
                     )}
                   </button>
@@ -1066,17 +1066,17 @@
               {/* Шапка карточки */}
               <div style={{ padding:isMobile?"16px 16px 12px":"24px 24px 16px" }}>
                 <div style={{ fontSize:13, color:T.textMuted, marginBottom:6 }}>
-                  {activeProfile.type === "baseline" ? `Рыночный ориентир ${CONFIG.city}` : activeProfile.subtitle}
+                  {activeProfile.type === "baseline" ? `${tr("Рыночный ориентир")} ${CONFIG.city}` : tr(activeProfile.subtitle)}
                 </div>
                 <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap", marginBottom:6 }}>
-                  <span style={{ fontSize:13, color:T.textSub }}>от</span>
+                  <span style={{ fontSize:13, color:T.textSub }}>{tr("от")}</span>
                   <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(cuMin)}</span>
                   <span style={{ fontSize:14, color:T.textSub }}>—</span>
                   <span style={{ fontSize:isMobile?26:32, fontWeight:900, color:T.text }}>{fmtK(cuMax)} ₸</span>
                 </div>
                 {sel.area && (
                   <div style={{ fontSize:12, color:T.textMuted, marginBottom:12 }}>
-                    {Math.round(cuPerM2).toLocaleString("ru-RU")} ₸/м² · полная итоговая цена
+                    {Math.round(cuPerM2).toLocaleString("ru-RU")} ₸/м² · {tr("полная итоговая цена")}
                   </div>
                 )}
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
@@ -1103,11 +1103,11 @@
                 <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0 6px" }}>
                   <div style={{ width:20, flexShrink:0 }}/>
                   <span style={{ flex:1, fontSize:11, fontWeight:700, color:T.textMuted,
-                    textTransform:"uppercase", letterSpacing:"0.08em" }}>Этап</span>
+                    textTransform:"uppercase", letterSpacing:"0.08em" }}>{tr("Этап")}</span>
                   <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
-                    letterSpacing:"0.06em", minWidth:70, textAlign:"right" }}>Срок</span>
+                    letterSpacing:"0.06em", minWidth:70, textAlign:"right" }}>{tr("Срок")}</span>
                   <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
-                    letterSpacing:"0.06em", minWidth:85, textAlign:"right" }}>Стоимость</span>
+                    letterSpacing:"0.06em", minWidth:85, textAlign:"right" }}>{tr("Стоимость")}</span>
                 </div>
 
                 {displayStages.map((s, i) => {
@@ -1121,17 +1121,17 @@
                         {STAGE_ICONS[s] || <Ico d="M4 8h8" size={16}/>}
                       </div>
                       <span style={{ flex:1, fontSize:14, color: avail ? T.text : T.textMuted }}>
-                        {LABELS[s]}
+                        {tr(LABELS[s])}
                       </span>
                       <span style={{ fontSize:12, color:T.textMuted, flexShrink:0, minWidth:70, textAlign:"right" }}>
                         {dur && avail
-                          ? (dur.min === dur.max ? `${dur.min} дн.` : `${dur.min}–${dur.max} дн.`)
+                          ? (dur.min === dur.max ? `${dur.min} ${tr("дн.")}` : `${dur.min}–${dur.max} ${tr("дн.")}`)
                           : "—"}
                       </span>
                       <span style={{ fontSize:14, fontWeight:600, color: avail ? T.text : T.textMuted,
                         flexShrink:0, minWidth:85, textAlign:"right" }}>
                         {!it ? "—" : !avail
-                          ? <span style={{ fontSize:12, color:T.textMuted, fontStyle:"italic" }}>не выполняет</span>
+                          ? <span style={{ fontSize:12, color:T.textMuted, fontStyle:"italic" }}>{tr("не выполняет")}</span>
                           : it.cost > 0 ? fmtK(it.cost)+" ₸" : "—"}
                       </span>
                     </div>
@@ -1142,7 +1142,7 @@
                   <div style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
                     borderTop:`1px solid ${T.border}` }}>
                     <div style={{ color:T.textMuted, flexShrink:0, width:20 }}>{STAGE_ICONS.materials}</div>
-                    <span style={{ flex:1, fontSize:14, color:T.textSub }}>Материалы ~</span>
+                    <span style={{ flex:1, fontSize:14, color:T.textSub }}>{tr("Материалы")} ~</span>
                     <span style={{ minWidth:70 }}/>
                     <span style={{ fontSize:14, fontWeight:700, color:T.text, minWidth:85, textAlign:"right" }}>
                       ~{fmtK(activeResult.matCost)} ₸
@@ -1165,9 +1165,9 @@
                       {/* Левая часть: диапазон */}
                       <div style={{ flex:1, marginBottom: isMobile?16:0 }}>
                         <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase",
-                          letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>С учётом погрешности ±15%</div>
+                          letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>{tr("С учётом погрешности ±15%")}</div>
                         <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
-                          <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>мин</span>
+                          <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>{tr("мин")}</span>
                           <span style={{ fontSize:24, fontWeight:900, color:"#fff" }}>{fmtK(cuMin)}</span>
                           <span style={{ fontSize:14, color:"rgba(255,255,255,0.4)" }}>—</span>
                           <span style={{ fontSize:24, fontWeight:900, color:T.accent }}>{fmtK(cuMax)}</span>
@@ -1179,12 +1179,12 @@
                       {totalDur && (
                         <div style={{ flexShrink:0 }}>
                           <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase",
-                            letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>Общий срок</div>
+                            letterSpacing:"0.08em", marginBottom:8, fontWeight:600 }}>{tr("Общий срок")}</div>
                           <div style={{ display:"flex", alignItems:"baseline", gap:5 }}>
                             <span style={{ fontSize:24, fontWeight:900, color:"#fff" }}>{totalDur.min}</span>
                             <span style={{ fontSize:14, color:"rgba(255,255,255,0.4)" }}>—</span>
                             <span style={{ fontSize:24, fontWeight:900, color:T.accent }}>{totalDur.max}</span>
-                            <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>раб. дней</span>
+                            <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{tr("раб. дней")}</span>
                           </div>
                         </div>
                       )}
@@ -1193,9 +1193,9 @@
                     {activeResult.unavail.length > 0 && (
                       <div style={{ background:"rgba(245,200,66,0.12)", border:"1px solid rgba(245,200,66,0.25)",
                         borderRadius:T.rBtn, padding:"10px 12px", marginTop:14 }}>
-                        <span style={{ fontSize:12, color:T.accent, fontWeight:600 }}>Не выполняет: </span>
+                        <span style={{ fontSize:12, color:T.accent, fontWeight:600 }}>{tr("Не выполняет")}: </span>
                         <span style={{ fontSize:12, color:"rgba(245,200,66,0.8)" }}>
-                          {activeResult.unavail.map(s=>LABELS[s]).join(", ")}
+                          {activeResult.unavail.map(s=>tr(LABELS[s])).join(", ")}
                         </span>
                       </div>
                     )}
@@ -1206,30 +1206,29 @@
 
             <div style={{ background:"#FFFDF0", border:`1px solid #E8E0C0`, borderRadius:T.r,
               padding:"14px 18px", marginBottom:18 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:"#7A5500", marginBottom:4 }}>⚠️ Стоимость ориентировочная</div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#7A5500", marginBottom:4 }}>{tr("⚠️ Стоимость ориентировочная")}</div>
               <div style={{ fontSize:12, color:"#8A6510", lineHeight:1.6 }}>
-                Точный расчёт формируется после замера квартиры. На итоговую стоимость влияет состояние
-                стен и перекрытий, фактические объёмы и выбор материалов.
+                {tr("Точный расчёт формируется после замера квартиры. На итоговую стоимость влияет состояние стен и перекрытий, фактические объёмы и выбор материалов.")}
               </div>
             </div>
 
             {activeProfile.type === "baseline" ? (
               <Btn onClick={() => rankedContractors.length > 0 && setActiveId(rankedContractors[0].id)}>
-                Смотреть подрядчиков →
+                {tr("Смотреть подрядчиков →")}
               </Btn>
             ) : (
-              <Btn onClick={() => onChoose(activeProfile)}>Выбрать {activeProfile.name} →</Btn>
+              <Btn onClick={() => onChoose(activeProfile)}>{tr("Выбрать")} {activeProfile.name} →</Btn>
             )}
             <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:12 }}>
               <button onClick={() => onChoose(CONFIG.independent)} style={{
                 width:"100%", padding:"13px 24px", background:"transparent",
                 border:`1.5px solid ${T.accent}`, borderRadius:T.rBtn,
                 fontSize:14, fontWeight:700, color:T.accent, cursor:"pointer" }}>
-                Оставить заявку
+                {tr("Оставить заявку")}
               </button>
               <button onClick={onReset} style={{ fontSize:13, color:T.textMuted, background:"none",
                 border:"none", cursor:"pointer", textDecoration:"underline", textAlign:"center" }}>
-                Начать сначала
+                {tr("Начать сначала")}
               </button>
             </div>
           </div>
@@ -1348,9 +1347,9 @@
             <div style={{ background:T.bgCard, borderRadius:T.rLg, padding:isMobile?"20px":"28px",
               border:`1px solid ${T.border}` }}>
               <StepLabel label="Заявка"/>
-              <h1 style={{ fontSize:26, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.4 }}>Оставьте контакты</h1>
+              <h1 style={{ fontSize:26, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.4 }}>{tr("Оставьте контакты")}</h1>
               <p style={{ fontSize:14, color:T.textSub, marginBottom:24, lineHeight:1.6 }}>
-                Подрядчик получит ваш полный расчёт и свяжется в течение рабочего дня.
+                {tr("Подрядчик получит ваш полный расчёт и свяжется в течение рабочего дня.")}
               </p>
 
               {/* Honeypot — невидимо для людей, боты заполняют */}
@@ -1371,7 +1370,7 @@
 
               {[["name","Ваше имя *","Иван","text"],["phone","Телефон *","+7 (___) ___ __ __","tel"]].map(([k,l,ph,t]) => (
                 <div key={k} style={{ marginBottom:16 }}>
-                  <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:6 }}>{l}</label>
+                  <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:6 }}>{tr(l)}</label>
                   <input style={{ width:"100%", padding:"12px 14px", borderRadius:T.r,
                     border:`1.5px solid ${errors[k]?T.red:T.border}`, fontSize:15,
                     outline:"none", background:T.bgPage, color:T.text }}
@@ -1382,7 +1381,7 @@
               ))}
 
               <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:8 }}>
-                Удобный способ связи
+                {tr("Удобный способ связи")}
               </label>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:18 }}>
                 {[["whatsapp","WhatsApp"],["telegram","Telegram"],["call","Звонок"]].map(([v,l]) => (
@@ -1391,12 +1390,12 @@
                     border:`1.5px solid ${lead.contact===v?T.text:T.border}`,
                     background: lead.contact===v ? T.text : T.bgCard,
                     color: lead.contact===v ? T.white : T.text,
-                  }}>{l}</button>
+                  }}>{tr(l)}</button>
                 ))}
               </div>
 
               <label style={{ fontSize:13, fontWeight:600, color:T.textSub, display:"block", marginBottom:8 }}>
-                Когда планируете начать?
+                {tr("Когда планируете начать?")}
               </label>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:22 }}>
                 {[["asap","Как можно скорее"],["month","В течение месяца"],
@@ -1407,7 +1406,7 @@
                   border:`1.5px solid ${lead.timing===v?T.text:T.border}`,
                   background: lead.timing===v ? T.text : T.bgCard,
                   color: lead.timing===v ? T.white : T.text,
-                }}>{l}</button>
+                }}>{tr(l)}</button>
                 ))}
               </div>
 
@@ -1416,10 +1415,9 @@
                 <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
                   style={{ marginTop:2, accentColor:T.accent, width:16, height:16, flexShrink:0 }}/>
                 <span style={{ fontSize:12, color:T.textSub, lineHeight:1.55 }}>
-                  Нажимая «Отправить», вы соглашаетесь на обработку персональных данных
-                  в соответствии с{" "}
+                  {tr("Нажимая «Отправить», вы соглашаетесь на обработку персональных данных в соответствии с")}{" "}
                   <a href="#" style={{ color:T.accent, textDecoration:"underline" }}>
-                    Политикой конфиденциальности
+                    {tr("Политикой конфиденциальности")}
                   </a>
                 </span>
               </label>
@@ -1431,30 +1429,30 @@
                 {sending ? (
                   <span style={{ display:"flex", alignItems:"center", gap:10, justifyContent:"center" }}>
                     <span className="rayo-spinner"/>
-                    Отправляем...
+                    {tr("Отправляем...")}
                   </span>
                 ) : !btnReady ? (
                   <span style={{ display:"flex", alignItems:"center", gap:10, justifyContent:"center" }}>
                     <span className="rayo-spinner"/>
-                    Загрузка...
+                    {tr("Загрузка...")}
                   </span>
-                ) : "Отправить заявку →"}
+                ) : tr("Отправить заявку →")}
               </Btn>
               <button onClick={onBack} style={{ display:"block", width:"100%", textAlign:"center",
                 marginTop:12, fontSize:13, color:T.textSub, background:"none", border:"none",
-                cursor:"pointer" }}>← Назад к смете</button>
+                cursor:"pointer" }}>{tr("← Назад к смете")}</button>
             </div>
 
             <div>
               <div style={{ background:T.bgDark, borderRadius:T.rLg, padding:20, marginBottom: isMobile?16:0 }}>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>
-                  Ваш расчёт
+                  {tr("Ваш расчёт")}
                 </div>
                 <div style={{ fontSize:14, fontWeight:700, color:T.accent, marginBottom:6 }}>{chosenProfile.name}</div>
                 <div style={{ display:"flex", alignItems:"baseline", gap:5, flexWrap:"wrap" }}>
-                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>от</span>
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{tr("от")}</span>
                   <span style={{ fontSize:20, fontWeight:900, color:"#fff" }}>{fmtK(result.gMin)}</span>
-                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>до</span>
+                  <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{tr("до")}</span>
                   <span style={{ fontSize:20, fontWeight:900, color:T.accent }}>{fmtK(result.gMax)} ₸</span>
                 </div>
                 <div style={{ borderTop:"1px solid #252A34", paddingTop:12, marginTop:12,
@@ -1494,29 +1492,29 @@
                 display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
                 <Ico d="M14 4L7 13l-4-4" size={24} stroke={T.text} sw="2.5"/>
               </div>
-              <h1 style={{ fontSize:22, fontWeight:800, color:T.text, marginBottom:10 }}>Заявка отправлена</h1>
+              <h1 style={{ fontSize:22, fontWeight:800, color:T.text, marginBottom:10 }}>{tr("Заявка отправлена")}</h1>
               <p style={{ fontSize:14, color:T.textSub, marginBottom:24, lineHeight:1.6 }}>
-                Подрядчик получил вашу смету и свяжется в течение рабочего дня.
+                {tr("Подрядчик получил вашу смету и свяжется в течение рабочего дня.")}
               </p>
 
               {r && chosen && (
                 <div style={{ background:T.bgDark, borderRadius:T.r, padding:"16px 20px", marginBottom:24 }}>
                   <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase",
                     letterSpacing:"0.08em", marginBottom:6 }}>
-                    ВАШ РАСЧЁТ · {chosen.name.toUpperCase()}
+                    {tr("Ваш расчёт").toUpperCase()} · {chosen.name.toUpperCase()}
                   </div>
                   <div style={{ display:"flex", alignItems:"baseline", gap:5, justifyContent:"center", flexWrap:"wrap" }}>
-                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>от</span>
+                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{tr("от")}</span>
                     <span style={{ fontSize:22, fontWeight:900, color:"#fff" }}>{fmtK(r.gMin)}</span>
-                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>до</span>
+                    <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{tr("до")}</span>
                     <span style={{ fontSize:22, fontWeight:900, color:T.accent }}>{fmtK(r.gMax)} ₸</span>
                   </div>
                 </div>
               )}
 
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                <BtnOutline onClick={goMain}>На главную</BtnOutline>
-                <BtnOutline onClick={onReset}>Начать сначала</BtnOutline>
+                <BtnOutline onClick={goMain}>{tr("На главную")}</BtnOutline>
+                <BtnOutline onClick={onReset}>{tr("Начать сначала")}</BtnOutline>
               </div>
             </div>
           </div>
@@ -1657,8 +1655,8 @@
             </div>
           </div>
           <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:16, fontWeight:700, color:T.text, marginBottom:6 }}>Считаем вашу смету</div>
-            <div style={{ fontSize:13, color:T.textMuted }}>Подбираем подрядчиков Павлодара…</div>
+            <div style={{ fontSize:16, fontWeight:700, color:T.text, marginBottom:6 }}>{tr("Считаем вашу смету")}</div>
+            <div style={{ fontSize:13, color:T.textMuted }}>{tr("Подбираем подрядчиков Павлодара…")}</div>
           </div>
         </div>
       );
