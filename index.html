@@ -555,11 +555,14 @@
         const el = document.createElement("style");
         el.id = id;
         el.textContent = `
-          @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: 'Manrope', system-ui, sans-serif; background: #FAF9F7; -webkit-font-smoothing: antialiased; }
           * { font-family: 'Manrope', system-ui, sans-serif; }
           button, input, select, textarea { font-family: 'Manrope', system-ui, sans-serif; }
+          /* Казахский: Manrope не содержит букв ә ғ қ ң ө ұ ү і — переключаем на Inter
+             (близкий по виду шрифт с полной поддержкой казахского). */
+          body.lang-kz, body.lang-kz * { font-family: 'Inter', system-ui, sans-serif !important; }
           input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:4px; background:transparent; outline:none; cursor:pointer; }
           input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:2px; background:#E0DDD6; }
           input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; background:#F5C842; border-radius:50%; margin-top:-10px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.16); transition:transform .15s; }
@@ -646,12 +649,17 @@
     // Переключатель языка. setLang() меняет язык и перерисовывает всё приложение
     // (корневой компонент подписан на langListeners).
     const langListeners = new Set();
+    function applyLangFont() {
+      try { document.body.classList.toggle("lang-kz", LANG === "kz"); } catch(_) {}
+    }
     function setLang(l) {
       if (l === LANG) return;
       LANG = l;
       try { localStorage.setItem("ravio_lang", l); } catch(_) {}
+      applyLangFont();
       langListeners.forEach(fn => fn());
     }
+    applyLangFont(); // выставить шрифт при загрузке (если язык уже KZ)
     const LangToggle = () => (
       <div style={{ display:"flex", gap:2, background:"#F2F0EA", borderRadius:T.rPill, padding:3, flexShrink:0 }}>
         {[["ru","РУ"],["kz","ҚАЗ"]].map(([code,label]) => (
@@ -1780,12 +1788,12 @@
           <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
             <WizHeader/>
             <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
-              <StepLabel label="Шаг 1 · Площадь"/>
+              <StepLabel label={tr("Шаг 1 · Площадь")}/>
               <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
-                Какая площадь квартиры?
+                {tr("Какая площадь квартиры?")}
               </h1>
               <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>
-                Можно указать примерно — диапазон уточнится на следующих шагах.
+                {tr("Можно указать примерно — диапазон уточнится на следующих шагах.")}
               </p>
               <div style={{ background:T.bgCard, borderRadius:T.rLg, padding:isMobile?"20px":"28px",
                 border:`1.5px solid ${T.border}` }}>
@@ -1859,9 +1867,9 @@
         <div style={{ minHeight:"100vh", background:T.bgPage, fontFamily:T.font }}>
           <WizHeader/>
           <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
-            <StepLabel label="Шаг 2 · Тип квартиры"/>
-            <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>Сколько комнат?</h1>
-            <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>Один тап — переход к следующему шагу.</p>
+            <StepLabel label={tr("Шаг 2 · Тип квартиры")}/>
+            <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>{tr("Сколько комнат?")}</h1>
+            <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>{tr("Один тап — переход к следующему шагу.")}</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               {[["1","1 комната"],["2","2 комнаты"],["3","3 комнаты"],["4+","4 и более"]].map(([val,label]) => (
                 <button key={val} onClick={() => {
@@ -1874,7 +1882,7 @@
                   background: sel.rooms===val?T.text:T.bgCard,
                 }}>
                   <div style={{ fontSize:36, fontWeight:800, color:sel.rooms===val?T.accent:T.text, letterSpacing:-1 }}>{val}</div>
-                  <div style={{ fontSize:13, color:sel.rooms===val?"#7A8099":T.textSub, marginTop:5, fontWeight:500 }}>{label}</div>
+                  <div style={{ fontSize:13, color:sel.rooms===val?"#7A8099":T.textSub, marginTop:5, fontWeight:500 }}>{tr(label)}</div>
                 </button>
               ))}
             </div>
@@ -1923,10 +1931,10 @@
           <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
             <StepLabel label={`Шаг ${sel.calculationScope==="selected_stages"?4:3} · Состояние`}/>
             <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
-              В каком состоянии квартира?
+              {tr("В каком состоянии квартира?")}
             </h1>
             <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>
-              Влияет на коэффициент сложности и объём подготовительных работ.
+              {tr("Влияет на коэффициент сложности и объём подготовительных работ.")}
             </p>
             {[
               ["new_building",    "Новостройка без отделки",         "Чистовая отделка с нуля"],
@@ -1934,7 +1942,7 @@
               ["old_full_repair", "Старая квартира под ремонт",      "Повышенная сложность работ"],
               ["very_bad",        "Убитое состояние",                "Максимальный объём подготовки"],
             ].map(([val,title,sub]) => (
-              <OptionRow key={val} icon={COND_ICONS[val]} title={title} sub={sub}
+              <OptionRow key={val} icon={COND_ICONS[val]} title={tr(title)} sub={tr(sub)}
                 onClick={() => goCondition(val)} active={sel.condition===val}/>
             ))}
           </WizardWrap>
