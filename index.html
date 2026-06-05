@@ -30,8 +30,23 @@
        Менять цены/подрядчиков нужно в pricing.js -->
   <script src="pricing.js"></script>
 
+  <!-- Переводы (казахский). Грузится ДО приложения. Править перевод — в lang.js -->
+  <script src="lang.js"></script>
+
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useCallback } = React;
+
+    // ═══════════════════════════════════════════════════════════════
+    // ЯЗЫК (i18n). t("русский текст") → казахский, если выбран KZ.
+    // Если перевода нет — возвращается русский (сайт не ломается).
+    // Казахский словарь живёт в lang.js (window.RAVIO_LANG.kz).
+    // ═══════════════════════════════════════════════════════════════
+    let LANG = (function(){ try { return localStorage.getItem("ravio_lang") || "ru"; } catch(_) { return "ru"; } })();
+    function tr(ru) {
+      if (LANG === "ru") return ru;
+      const m = (window.RAVIO_LANG && window.RAVIO_LANG.kz) || {};
+      return m[ru] || ru;
+    }
 
     // ═══════════════════════════════════════════════════════════════
     // ИНТЕГРАЦИИ
@@ -628,6 +643,28 @@
       </div>
     );
 
+    // Переключатель языка. setLang() меняет язык и перерисовывает всё приложение
+    // (корневой компонент подписан на langListeners).
+    const langListeners = new Set();
+    function setLang(l) {
+      if (l === LANG) return;
+      LANG = l;
+      try { localStorage.setItem("ravio_lang", l); } catch(_) {}
+      langListeners.forEach(fn => fn());
+    }
+    const LangToggle = () => (
+      <div style={{ display:"flex", gap:2, background:"#F2F0EA", borderRadius:T.rPill, padding:3, flexShrink:0 }}>
+        {[["ru","РУ"],["kz","ҚАЗ"]].map(([code,label]) => (
+          <button key={code} onClick={() => setLang(code)} style={{
+            padding:"4px 10px", borderRadius:T.rPill, border:"none", cursor:"pointer",
+            fontSize:12, fontWeight:700, transition:"all .15s",
+            background: LANG===code ? T.text : "transparent",
+            color: LANG===code ? T.accent : T.textSub,
+          }}>{label}</button>
+        ))}
+      </div>
+    );
+
     const TopBar = ({ step, total, onBack, showBack=true, rightEl, onLogoClick, progress }) => (
       <div style={{ background:T.bgCard, position:"sticky", top:0, zIndex:50,
         boxShadow:"0 1px 0 0 #E8E6E0" }}>
@@ -636,11 +673,14 @@
           {showBack
             ? <button onClick={onBack} className="rayo-btn-ghost" style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px",
                 borderRadius:T.rPill, background:"transparent", border:`1.5px solid ${T.border}`,
-                fontSize:13, fontWeight:600, color:T.text, cursor:"pointer", whiteSpace:"nowrap" }}>← Назад</button>
+                fontSize:13, fontWeight:600, color:T.text, cursor:"pointer", whiteSpace:"nowrap" }}>{tr("← Назад")}</button>
             : <div style={{ width:90 }}/>
           }
           <Logo onClick={onLogoClick}/>
-          <div style={{ minWidth:90, display:"flex", justifyContent:"flex-end" }}>{rightEl || null}</div>
+          <div style={{ minWidth:90, display:"flex", justifyContent:"flex-end", alignItems:"center", gap:10 }}>
+            {rightEl || null}
+            <LangToggle/>
+          </div>
         </div>
         {/* Прогресс-бар — показывается только во время wizard */}
         {progress != null && (
@@ -846,7 +886,7 @@
 
           <div style={{ position:"relative", marginBottom:16 }}>
             <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>
-              Ваши параметры
+              {tr("Ваши параметры")}
             </span>
           </div>
 
@@ -858,8 +898,8 @@
               ["Состояние", sel.condition ? condLabel : "—"],
             ].map(([k,v]) => (
               <div key={k} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{k}</span>
-                <span style={{ fontSize:13, color:v==="—"?"rgba(255,255,255,0.2)":"#fff", fontWeight:600 }}>{v}</span>
+                <span style={{ fontSize:13, color:"rgba(255,255,255,0.45)" }}>{tr(k)}</span>
+                <span style={{ fontSize:13, color:v==="—"?"rgba(255,255,255,0.2)":"#fff", fontWeight:600 }}>{v==="—"?v:tr(v)}</span>
               </div>
             ))}
           </div>
@@ -868,7 +908,7 @@
           {sel.selectedStages.length > 0 && (
             <div style={{ borderTop:"1px solid rgba(255,255,255,0.08)", paddingTop:14, marginBottom:14 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10 }}>
-                <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>Этапы</span>
+                <span style={{ fontSize:11, color:"rgba(255,255,255,0.45)", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>{tr("Этапы")}</span>
                 <span style={{ fontSize:11, color:T.accent, fontWeight:700 }}>{doneCount}/{sel.selectedStages.length}</span>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
@@ -887,7 +927,7 @@
                         animation: st === "active" ? "pulse 1.4s ease-in-out infinite" : "none",
                       }}>{st === "done" ? "✓" : ""}</span>
                       <span style={{ fontSize:13, color, fontWeight: st === "todo" ? 500 : 700 }}>
-                        {LABELS[s] || s}
+                        {tr(LABELS[s] || s)}
                       </span>
                     </div>
                   );
@@ -946,7 +986,7 @@
                   borderRadius:T.rPill, background:"transparent", border:`1.5px solid ${T.border}`,
                   fontSize:13, fontWeight:600, color:T.text, cursor:"pointer",
                   whiteSpace:"nowrap", lineHeight:1 }}>
-                Начать сначала
+                {tr("Начать сначала")}
               </button>
             }/>
           <div style={{ maxWidth:840, margin:"0 auto", padding: isMobile?"16px 16px 80px":"28px 24px 80px" }}
@@ -1489,6 +1529,13 @@
       const [errors, setErrors]         = useState({});
       const [leadPayload, setLeadPayload] = useState(null);
       const [animKey, setAnimKey]         = useState(0);
+      // Перерисовка всего приложения при смене языка
+      const [, forceLang] = useState(0);
+      useEffect(() => {
+        const fn = () => forceLang(x => x + 1);
+        langListeners.add(fn);
+        return () => langListeners.delete(fn);
+      }, []);
       const isMobile = useIsMobile();
       useStyles();
 
@@ -1645,8 +1692,10 @@
         ? (
           <div style={{ background:T.bgCard, boxShadow:"0 1px 0 0 #E8E6E0", position:"sticky", top:0, zIndex:50 }}>
             <div style={{ maxWidth:960, margin:"0 auto", padding:"0 24px",
-              display:"flex", alignItems:"center", justifyContent:"center", height:60 }}>
+              display:"flex", alignItems:"center", justifyContent:"space-between", height:60 }}>
+              <div style={{ width:72 }}/>
               <Logo onClick={goMain}/>
+              <LangToggle/>
             </div>
           </div>
         ) : (
@@ -1662,14 +1711,14 @@
 
             <h1 style={{ fontSize:isMobile?28:42, fontWeight:900, color:T.text, marginBottom:12,
               lineHeight:1.12, letterSpacing:-1 }}>
-              Сколько стоит ремонт<br/>вашей квартиры?
+              {tr("Сколько стоит ремонт вашей квартиры?")}
             </h1>
             <p style={{ fontSize:isMobile?14:16, color:T.textSub, marginBottom:16, lineHeight:1.65, maxWidth:520 }}>
-              Ответьте на несколько вопросов — получите ориентир по цене и увидите реальных подрядчиков Павлодара.
+              {tr("Ответьте на несколько вопросов — получите ориентир по цене и увидите реальных подрядчиков Павлодара.")}
             </p>
             <div style={{ fontSize:13, color:T.textMuted, marginBottom:32, display:"flex", alignItems:"center", gap:6 }}>
               <span style={{ width:7, height:7, borderRadius:"50%", background:T.accent, display:"inline-block", flexShrink:0 }}/>
-              {CONFIG.localEstimatesCount.toLocaleString("ru-RU")} смет составлено в Павлодаре · {currentMonth}
+              {CONFIG.localEstimatesCount.toLocaleString("ru-RU")} {tr("смет составлено в Павлодаре")} · {currentMonth}
             </div>
 
             <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr 1fr", gap:16, marginBottom:28 }}>
@@ -1702,12 +1751,12 @@
                     </div>
                     <div style={{ padding:"0 20px 22px", flex:1, display:"flex", flexDirection:"column" }}>
                       <div style={{ fontSize:16, fontWeight:800, color: active?T.white:T.text,
-                        marginBottom:8, lineHeight:1.25, letterSpacing:-0.3 }}>{title}</div>
+                        marginBottom:8, lineHeight:1.25, letterSpacing:-0.3 }}>{tr(title)}</div>
                       <div style={{ fontSize:14, color: active?"rgba(255,255,255,0.6)":T.textSub, lineHeight:1.55,
-                        marginBottom:"auto", paddingBottom:16 }}>{sub}</div>
+                        marginBottom:"auto", paddingBottom:16 }}>{tr(sub)}</div>
                       <div style={{ fontSize:13, fontWeight:700, color: active?T.accent:T.text,
                         display:"flex", alignItems:"center", gap:4 }}>
-                        Начать <span style={{ fontSize:16 }}>→</span>
+                        {tr("Начать")} <span style={{ fontSize:16 }}>→</span>
                       </div>
                     </div>
                   </button>
@@ -1717,7 +1766,7 @@
 
             <div style={{ fontSize:12, color:T.textMuted, display:"flex", alignItems:"center", gap:6 }}>
               <Ico d="M8 14A6 6 0 108 2a6 6 0 000 12zm-1-7h2v4H7zm0-2h2v1H7z" size={14} stroke={T.textMuted}/>
-              Ваши данные не передаются третьим лицам без согласия
+              {tr("Ваши данные не передаются третьим лицам без согласия")}
             </div>
           </div>
         </div>
