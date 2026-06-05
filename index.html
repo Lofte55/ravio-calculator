@@ -702,7 +702,7 @@
 
     const StepLabel = ({ label }) => (
       <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:"0.1em",
-        textTransform:"uppercase", marginBottom:10 }}>{label}</div>
+        textTransform:"uppercase", marginBottom:10 }}>{tr(label)}</div>
     );
 
     const Btn = ({ children, onClick, style={}, disabled=false }) => (
@@ -749,9 +749,9 @@
             display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:T.text }}>
             {icon}
           </div>
-          <h2 style={{ fontSize:26, fontWeight:900, color:T.text }}>{title}</h2>
+          <h2 style={{ fontSize:26, fontWeight:900, color:T.text }}>{tr(title)}</h2>
         </div>
-        {subtitle && <p style={{ fontSize:14, color:T.textSub, marginLeft:52 }}>{subtitle}</p>}
+        {subtitle && <p style={{ fontSize:14, color:T.textSub, marginLeft:52 }}>{tr(subtitle)}</p>}
       </div>
     );
 
@@ -769,7 +769,7 @@
           {icon}
         </div>
         <span style={{ fontSize:13, fontWeight: selected ? 700 : 500,
-          color: selected ? T.white : T.text, flex:1 }}>{label}</span>
+          color: selected ? T.white : T.text, flex:1 }}>{tr(label)}</span>
         {selected && (
           <div style={{ width:20, height:20, borderRadius:"50%", background:T.accent, flexShrink:0,
             display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -794,8 +794,8 @@
           {icon}
         </div>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:14, fontWeight:600, color: active ? T.white : T.text }}>{title}</div>
-          {sub && <div style={{ fontSize:12, color: active ? "#9A9AB0" : T.textSub, marginTop:2 }}>{sub}</div>}
+          <div style={{ fontSize:14, fontWeight:600, color: active ? T.white : T.text }}>{tr(title)}</div>
+          {sub && <div style={{ fontSize:12, color: active ? "#9A9AB0" : T.textSub, marginTop:2 }}>{tr(sub)}</div>}
         </div>
         {right && <div style={{ color: active ? T.accent : T.textMuted, fontSize:13, fontWeight:700, whiteSpace:"nowrap" }}>{right}</div>}
         {active && (
@@ -810,7 +810,7 @@
     const NumInput = ({ label, value, onChange, min=0, max=9999, placeholder="0", suffix="" }) => (
       <div style={{ display:"flex", flexDirection:"column", gap:5, flex:1 }}>
         <label style={{ fontSize:12, fontWeight:600, color:T.textSub, textTransform:"uppercase", letterSpacing:"0.05em" }}>
-          {label}
+          {tr(label)}
         </label>
         <div style={{ display:"flex", alignItems:"center", background:T.bgCard,
           border:`1.5px solid ${T.border}`, borderRadius:T.r, overflow:"hidden" }}>
@@ -1854,7 +1854,7 @@
                 </div>
                 {errors.area && <div style={{ fontSize:12, color:T.red, marginBottom:10 }}>{errors.area}</div>}
                 <Btn onClick={() => { if(validateArea()) { track("step_area", { area: sel.area, sid:SID }); setAnimKey(k=>k+1); setGStep("rooms"); } }}>
-                  Дальше →
+                  {tr("Дальше →")}
                 </Btn>
               </div>
             </WizardWrap>
@@ -1897,10 +1897,10 @@
           <WizardWrap sel={sel} liveResult={liveResult} isMobile={isMobile} animKey={animKey} microSteps={microSteps} microIdx={microIdx}>
             <StepLabel label="Шаг 3 · Выбор этапов"/>
             <h1 style={{ fontSize:isMobile?28:34, fontWeight:800, color:T.text, marginBottom:8, letterSpacing:-0.5 }}>
-              Какие этапы вам нужны?
+              {tr("Какие этапы вам нужны?")}
             </h1>
             <p style={{ fontSize:14, color:T.textSub, marginBottom:22, lineHeight:1.6 }}>
-              Можно выбрать несколько. Кнопка «Дальше» появится после выбора.
+              {tr("Можно выбрать несколько. Кнопка «Дальше» появится после выбора.")}
             </p>
             <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:8, marginBottom:16 }}>
               {STAGE_ORDER.map(s => (
@@ -1917,8 +1917,8 @@
               }}
               style={{ opacity: sel.selectedStages.length > 0 ? 1 : 0.5 }}>
               {sel.selectedStages.length > 0
-                ? `Дальше · выбрано ${sel.selectedStages.length} →`
-                : "Выберите хотя бы один этап →"}
+                ? `${tr("Дальше · выбрано")} ${sel.selectedStages.length} →`
+                : tr("Выберите хотя бы один этап →")}
             </Btn>
           </WizardWrap>
         </div>
@@ -1957,16 +1957,16 @@
         const Nav = () => (
           <div style={{ marginTop:22 }}>
             <div style={{ display:"flex", gap:10, marginBottom:10 }}>
-              <BtnGhost onClick={goPrevMicro} style={{ flexShrink:0, padding:"12px 20px" }}>← Назад</BtnGhost>
+              <BtnGhost onClick={goPrevMicro} style={{ flexShrink:0, padding:"12px 20px" }}>{tr("← Назад")}</BtnGhost>
               <Btn onClick={goNextMicro} style={{ flex:1 }}>
-                {microIdx < microSteps.length-1 ? "Дальше →" : "Показать расчёт →"}
+                {microIdx < microSteps.length-1 ? tr("Дальше →") : tr("Показать расчёт →")}
               </Btn>
             </div>
             {microIdx < microSteps.length-1 && (
               <button onClick={goNextMicro} style={{ display:"block", width:"100%", textAlign:"center",
                 fontSize:13, color:T.textMuted, background:"none", border:"none", cursor:"pointer",
                 textDecoration:"underline", textUnderlineOffset:2 }}>
-                Пропустить шаг
+                {tr("Пропустить шаг")}
               </button>
             )}
           </div>
