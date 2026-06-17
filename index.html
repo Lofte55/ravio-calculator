@@ -21,7 +21,10 @@
   <!-- /Yandex.Metrika counter -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Версия Babel ЗАФИКСИРОВАНА: новые версии по умолчанию вставляют
+       import jsx-runtime, который ломает не-module скрипт (белый экран).
+       7.23.5 использует классический React.createElement. Не обновлять без проверки. -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
