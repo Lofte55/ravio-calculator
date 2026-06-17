@@ -655,6 +655,7 @@
     // DOM-переводчик: ловит все статические русские строки, которые есть в словаре,
     // даже если они не обёрнуты tr(). Запускается после каждого рендера (см. root).
     function translateDOM() {
+      try {
       const root = document.getElementById("root");
       if (!root) return;
       const dict = (window.RAVIO_LANG && window.RAVIO_LANG.kz) || {};
@@ -691,6 +692,7 @@
           inp._phOrig = null;
         }
       });
+      } catch (e) { console.warn("translateDOM:", e); }
     }
     function setLang(l) {
       if (l === LANG) return;
@@ -1886,7 +1888,8 @@
                   <input type="range" min={15} max={200} step={1} value={areaVal}
                     onChange={e => upd("area", e.target.value)}
                     style={{ width:"100%", position:"relative", zIndex:1,
-                      background:"transparent", height:22, cursor:"pointer" }}/>
+                      background:"transparent", height:36, cursor:"pointer",
+                      touchAction:"none", WebkitTapHighlightColor:"transparent" }}/>
                 </div>
                 <div style={{ display:"flex", justifyContent:"space-between",
                   fontSize:11, color:T.textMuted, marginBottom:20 }}>
@@ -2195,56 +2198,63 @@
               {stage === "plumbing" && (<>
                 <StageHeader icon={STAGE_ICONS.plumbing} title="Сантехника" subtitle="Трубы, разводка, подключения."/>
 
-                {/* Демонтаж старых труб */}
-                {sel.selectedStages.includes("demolition") ? (
-                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
-                    padding:"12px 16px", marginBottom:14 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
-                      ✓ Демонтаж старых труб включён в этап «Демонтаж»
-                    </div>
-                  </div>
-                ) : (sel.plumbing === "full" || sel.plumbing === "partial") ? (
-                  <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
-                    padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
-                    <div style={{ fontSize:13, color:"#7A5500" }}>
-                      ⚠️ Замена труб включает демонтаж старых
-                    </div>
-                    <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
-                      style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
-                        background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
-                      + Добавить демонтаж
-                    </button>
-                  </div>
-                ) : null}
-
+                {/* Объём работ — сначала. «Не трогаем» последним пунктом. */}
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
-                  letterSpacing:"0.06em", marginBottom:10 }}>Где нужны трубы?</div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
-                  {[["sanuzul","🚿 Только санузел"],["kitchen","🍳 Только кухня"],["all","🏠 Всё вместе"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>upd("plumbingLocation",v)} style={{
-                      padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
-                      border:`1.5px solid ${sel.plumbingLocation===v?T.text:T.border}`,
-                      background: sel.plumbingLocation===v?T.text:T.bgCard,
-                      color: sel.plumbingLocation===v?T.white:T.text, textAlign:"center",
-                    }}>{l}</button>
-                  ))}
-                </div>
-                <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r,
-                  padding:"14px 16px", marginBottom:8 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
-                    letterSpacing:"0.06em", marginBottom:10 }}>Метраж труб (погонные метры)</div>
-                  <NumInput label="Метры труб" value={sel.plumbingMeters}
-                    onChange={v=>upd("plumbingMeters",v)} suffix="п/м"/>
-                </div>
+                  letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
                 {[
-                  ["none",         "Не трогаем",                 "Оставляем как есть"],
                   ["partial",      "Частично заменить",           "Подводка к приборам"],
                   ["full",         "Полная замена",               "Все стояки и разводка"],
                   ["from_scratch", "С нуля — нет коммуникаций",  "Труб нет совсем, прокладываем всё"],
+                  ["none",         "Не трогаем",                 "Оставляем как есть"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.plumbing} title={t} sub={s}
                     onClick={()=>upd("plumbing",v)} active={sel.plumbing===v}/>
                 ))}
+
+                {/* Доп. поля — только если выбран реальный объём (не «Не трогаем») */}
+                {sel.plumbing && sel.plumbing !== "none" && (<>
+                  {/* Демонтаж старых труб */}
+                  {sel.selectedStages.includes("demolition") ? (
+                    <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                      padding:"12px 16px", margin:"14px 0" }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                        ✓ Демонтаж старых труб включён в этап «Демонтаж»
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
+                      padding:"12px 16px", margin:"14px 0", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                      <div style={{ fontSize:13, color:"#7A5500" }}>
+                        ⚠️ Замена труб включает демонтаж старых
+                      </div>
+                      <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
+                        style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
+                          background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
+                        + Добавить демонтаж
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                    letterSpacing:"0.06em", marginBottom:10 }}>Где нужны трубы?</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                    {[["sanuzul","🚿 Только санузел"],["kitchen","🍳 Только кухня"],["all","🏠 Всё вместе"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>upd("plumbingLocation",v)} style={{
+                        padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
+                        border:`1.5px solid ${sel.plumbingLocation===v?T.text:T.border}`,
+                        background: sel.plumbingLocation===v?T.text:T.bgCard,
+                        color: sel.plumbingLocation===v?T.white:T.text, textAlign:"center",
+                      }}>{l}</button>
+                    ))}
+                  </div>
+                  <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:T.r,
+                    padding:"14px 16px", marginBottom:8 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                      letterSpacing:"0.06em", marginBottom:10 }}>Метраж труб (погонные метры)</div>
+                    <NumInput label="Метры труб" value={sel.plumbingMeters}
+                      onChange={v=>upd("plumbingMeters",v)} suffix="п/м"/>
+                  </div>
+                </>)}
                 <Nav/>
               </>)}
 
@@ -2452,7 +2462,50 @@
       return <div/>;
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<RayoCalculator/>);
+    // ── Error Boundary — ловит любую ошибку рендера, показывает экран с
+    //    перезагрузкой вместо белого экрана. Авто-перезагрузка один раз. ──
+    class ErrorBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { err: false }; }
+      static getDerivedStateFromError() { return { err: true }; }
+      componentDidCatch(error, info) {
+        console.error("RAVIO crash:", error, info);
+        try { if (window.ym) ym(109587808, "reachGoal", "app_error", { msg: String(error && error.message).slice(0,120) }); } catch(_) {}
+        // один авто-рестарт (флаг, чтобы не зациклить)
+        try {
+          if (!sessionStorage.getItem("ravio_reloaded")) {
+            sessionStorage.setItem("ravio_reloaded", "1");
+            setTimeout(() => location.reload(), 800);
+          }
+        } catch(_) {}
+      }
+      render() {
+        if (this.state.err) {
+          return (
+            <div style={{ fontFamily:"system-ui,sans-serif", maxWidth:440, margin:"80px auto",
+              padding:"28px 24px", textAlign:"center", color:"#1E2028" }}>
+              <div style={{ fontSize:40, marginBottom:12 }}>🔧</div>
+              <h2 style={{ fontSize:20, marginBottom:8 }}>Что-то пошло не так</h2>
+              <p style={{ fontSize:14, color:"#6B6B78", marginBottom:20, lineHeight:1.6 }}>
+                Перезагружаем страницу… Если не помогло — нажмите кнопку ниже.
+              </p>
+              <button onClick={() => { try{ sessionStorage.removeItem("ravio_reloaded"); }catch(_){}; location.reload(); }}
+                style={{ padding:"12px 24px", background:"#F5C842", color:"#1E2028", border:"none",
+                  borderRadius:12, fontSize:15, fontWeight:700, cursor:"pointer" }}>
+                Обновить страницу
+              </button>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // Сбрасываем флаг авто-рестарта при успешной загрузке (через 3 сек без падения)
+    setTimeout(() => { try { sessionStorage.removeItem("ravio_reloaded"); } catch(_) {} }, 3000);
+
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <ErrorBoundary><RayoCalculator/></ErrorBoundary>
+    );
   </script>
 </body>
 </html>
