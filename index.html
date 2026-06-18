@@ -2093,8 +2093,9 @@
 
               {stage === "demolition" && (<>
                 <StageHeader icon={STAGE_ICONS.demolition} title="Демонтаж" subtitle="Что нужно разобрать перед ремонтом?"/>
-                {[["none","Не нужен",""],["light","Лёгкий","Снять плитку, обои, плинтуса"],
-                  ["medium","Средний","Убрать перегородки, стяжку"],["full","Полный","До бетона"]].map(([v,t,s])=>(
+                {[["light","Лёгкий","Снять плитку, обои, плинтуса"],
+                  ["medium","Средний","Убрать перегородки, стяжку"],["full","Полный","До бетона"],
+                  ["none","Не нужен",""]].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.demolition} title={t} sub={s}
                     onClick={()=>upd("demolition",v)} active={sel.demolition===v}/>
                 ))}
@@ -2138,10 +2139,10 @@
                 {/* Объём замены */}
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
                 {[
-                  ["none",    "Не трогаем",              "Оставляем как есть"],
                   ["partial", "Частичная замена",         "Добавить линии, заменить часть"],
                   ["full",    "Полная замена",             "От щитка до каждой точки"],
                   ["from_scratch", "С нуля — нет коммуникаций", "Электрики нет совсем, прокладываем всё"],
+                  ["none",    "Не трогаем",              "Оставляем как есть"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.electric} title={t} sub={s}
                     onClick={()=>upd("electricType",v)} active={sel.electricType===v}/>
@@ -2264,117 +2265,124 @@
               {stage === "bathroom" && (<>
                 <StageHeader icon={STAGE_ICONS.bathroom} title="Санузел" subtitle="Расскажите про ваш санузел."/>
 
-                {/* Демонтаж старой плитки и сантехники */}
-                {sel.selectedStages.includes("demolition") ? (
-                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
-                    padding:"12px 16px", marginBottom:14 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
-                      ✓ Демонтаж старой плитки и сантехники включён в этап «Демонтаж»
-                    </div>
-                  </div>
-                ) : (sel.bathroom && sel.bathroom !== "none" && sel.bathroom !== "from_scratch") ? (
-                  <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
-                    padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
-                    <div style={{ fontSize:13, color:"#7A5500" }}>
-                      ⚠️ Ремонт санузла включает демонтаж старой плитки
-                    </div>
-                    <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
-                      style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
-                        background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
-                      + Добавить демонтаж
-                    </button>
-                  </div>
-                ) : null}
-
-                {sel.bathroomCount === "2" ? (
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-                    <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Санузел 1, м²"/>
-                    <ZoneInput value={sa.bathroom2} onChange={v=>updArea("bathroom2",v)} placeholder="Санузел 2, м²"/>
-                  </div>
-                ) : (
-                  <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Площадь санузла, м²"/>
-                )}
-
-                {/* Тип санузла */}
-                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Планировка</div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
-                  {[["combined","Совмещённый","Ванна/душ и туалет вместе"],["separate","Раздельный","Ванная и туалет отдельно"]].map(([v,t,s])=>(
-                    <button key={v} onClick={()=>upd("bathroomType",v)} style={{
-                      padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer", textAlign:"left",
-                      border:`1.5px solid ${sel.bathroomType===v?T.text:T.border}`,
-                      background: sel.bathroomType===v?T.text:T.bgCard,
-                      color: sel.bathroomType===v?T.white:T.text,
-                    }}>
-                      <div>{t}</div>
-                      <div style={{ fontSize:11, color: sel.bathroomType===v?"#888":T.textMuted, marginTop:2 }}>{s}</div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Количество санузлов */}
-                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Количество санузлов</div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
-                  {[["1","1 санузел"],["2","2 санузла"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>upd("bathroomCount",v)} style={{
-                      padding:"12px", borderRadius:T.r, fontSize:14, fontWeight:700, cursor:"pointer", textAlign:"center",
-                      border:`1.5px solid ${sel.bathroomCount===v?T.text:T.border}`,
-                      background: sel.bathroomCount===v?T.text:T.bgCard,
-                      color: sel.bathroomCount===v?T.accent:T.text,
-                    }}>{l}</button>
-                  ))}
-                </div>
-
-                {/* Тип сантехники */}
-                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Сантехника</div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
-                  {[["shower","🚿 Душевая"],["bath","🛁 Ванна"],["both","🛁🚿 Оба"]].map(([v,l])=>(
-                    <button key={v} onClick={()=>upd("bathroomFixtureType",v)} style={{
-                      padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
-                      border:`1.5px solid ${sel.bathroomFixtureType===v?T.text:T.border}`,
-                      background: sel.bathroomFixtureType===v?T.text:T.bgCard,
-                      color: sel.bathroomFixtureType===v?T.white:T.text, textAlign:"center",
-                    }}>{l}</button>
-                  ))}
-                </div>
-
-                {/* Объём работ */}
+                {/* Объём работ — сначала. «Не трогаем» последним пунктом. */}
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
                 {[
-                  ["none",         "Не трогаем",                    "Оставляем как есть"],
                   ["replace_only", "Только замена сантехники",       "Смеситель, унитаз, душ/ванна"],
                   ["cosmetic",     "Косметика",                     "Замена смесителей, подкраска, мелочи"],
                   ["partial",      "Частичный ремонт",              "Часть плитки, сантехника, потолок"],
                   ["full_1",       sel.bathroomCount==="2" ? "Полный ремонт обоих" : "Полный ремонт", "Плитка, сантехника, потолок, всё"],
                   ["from_scratch", "С нуля — санузла не было",      "Новостройка или перепланировка, всё с бетона"],
+                  ["none",         "Не трогаем",                    "Оставляем как есть"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.bathroom} title={t} sub={s}
                     onClick={()=>upd("bathroom",v)} active={sel.bathroom===v}/>
                 ))}
+
+                {/* Доп. поля — только если выбран реальный объём */}
+                {sel.bathroom && sel.bathroom !== "none" && (<>
+                  {/* Демонтаж старой плитки и сантехники */}
+                  {sel.selectedStages.includes("demolition") ? (
+                    <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                      padding:"12px 16px", margin:"14px 0" }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                        ✓ Демонтаж старой плитки и сантехники включён в этап «Демонтаж»
+                      </div>
+                    </div>
+                  ) : sel.bathroom !== "from_scratch" ? (
+                    <div style={{ background:"#FFF8E0", border:`1px solid #E8D080`, borderRadius:T.r,
+                      padding:"12px 16px", margin:"14px 0", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+                      <div style={{ fontSize:13, color:"#7A5500" }}>
+                        ⚠️ Ремонт санузла включает демонтаж старой плитки
+                      </div>
+                      <button onClick={()=>setSel(p=>({...p, selectedStages:[...p.selectedStages, "demolition"]}))}
+                        style={{ flexShrink:0, padding:"6px 14px", borderRadius:T.rPill, fontSize:12, fontWeight:700,
+                          background:T.text, color:T.accent, border:"none", cursor:"pointer", whiteSpace:"nowrap" }}>
+                        + Добавить демонтаж
+                      </button>
+                    </div>
+                  ) : <div style={{ marginBottom:14 }}/>}
+
+                  {sel.bathroomCount === "2" ? (
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+                      <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Санузел 1, м²"/>
+                      <ZoneInput value={sa.bathroom2} onChange={v=>updArea("bathroom2",v)} placeholder="Санузел 2, м²"/>
+                    </div>
+                  ) : (
+                    <ZoneInput value={sa.bathroom} onChange={v=>updArea("bathroom",v)} placeholder="Площадь санузла, м²"/>
+                  )}
+
+                  {/* Планировка */}
+                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Планировка</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+                    {[["combined","Совмещённый","Ванна/душ и туалет вместе"],["separate","Раздельный","Ванная и туалет отдельно"]].map(([v,t,s])=>(
+                      <button key={v} onClick={()=>upd("bathroomType",v)} style={{
+                        padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer", textAlign:"left",
+                        border:`1.5px solid ${sel.bathroomType===v?T.text:T.border}`,
+                        background: sel.bathroomType===v?T.text:T.bgCard,
+                        color: sel.bathroomType===v?T.white:T.text,
+                      }}>
+                        <div>{t}</div>
+                        <div style={{ fontSize:11, color: sel.bathroomType===v?"#888":T.textMuted, marginTop:2 }}>{s}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Количество санузлов */}
+                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Количество санузлов</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+                    {[["1","1 санузел"],["2","2 санузла"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>upd("bathroomCount",v)} style={{
+                        padding:"12px", borderRadius:T.r, fontSize:14, fontWeight:700, cursor:"pointer", textAlign:"center",
+                        border:`1.5px solid ${sel.bathroomCount===v?T.text:T.border}`,
+                        background: sel.bathroomCount===v?T.text:T.bgCard,
+                        color: sel.bathroomCount===v?T.accent:T.text,
+                      }}>{l}</button>
+                    ))}
+                  </div>
+
+                  {/* Тип сантехники */}
+                  <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>Сантехника</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
+                    {[["shower","🚿 Душевая"],["bath","🛁 Ванна"],["both","🛁🚿 Оба"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>upd("bathroomFixtureType",v)} style={{
+                        padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
+                        border:`1.5px solid ${sel.bathroomFixtureType===v?T.text:T.border}`,
+                        background: sel.bathroomFixtureType===v?T.text:T.bgCard,
+                        color: sel.bathroomFixtureType===v?T.white:T.text, textAlign:"center",
+                      }}>{l}</button>
+                    ))}
+                  </div>
+                </>)}
                 <Nav/>
               </>)}
 
               {stage === "kitchen" && (<>
                 <StageHeader icon={STAGE_ICONS.kitchen} title="Кухня" subtitle="Ремонт кухонной зоны (без мебели и техники)."/>
-                <ZoneInput value={sa.kitchen} onChange={v=>updArea("kitchen",v)} placeholder="Площадь кухонной зоны"/>
                 {[
-                  ["none",         "Не трогаем",                    "Оставляем как есть"],
                   ["basic",        "Обычный ремонт",                 "Стены, пол, потолок"],
                   ["with_apron",   "С фартуком",                    "Под кухонный гарнитур"],
                   ["from_scratch", "С нуля — кухни не было",        "Новостройка, кухонной зоны нет совсем"],
+                  ["none",         "Не трогаем",                    "Оставляем как есть"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.kitchen} title={t} sub={s}
                     onClick={()=>upd("kitchen",v)} active={sel.kitchen===v}/>
                 ))}
+                {sel.kitchen && sel.kitchen !== "none" && (
+                  <div style={{ marginTop:14 }}>
+                    <ZoneInput value={sa.kitchen} onChange={v=>updArea("kitchen",v)} placeholder="Площадь кухонной зоны"/>
+                  </div>
+                )}
                 <Nav/>
               </>)}
 
               {stage === "ceiling" && (<>
                 <StageHeader icon={STAGE_ICONS.ceiling} title="Потолки" subtitle={null}/>
                 {[
-                  ["none",    "Не трогаем",          "Оставляем как есть"],
                   ["stretch", "Натяжной потолок",    "Глянец или матовый"],
                   ["paint",   "Под покраску",         "Шпаклёвка и покраска"],
                   ["gypsum",  "Гипсокартон",         "Многоуровневый или ровный ГКЛ"],
+                  ["none",    "Не трогаем",          "Оставляем как есть"],
                 ].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.ceiling} title={t} sub={s}
                     onClick={()=>upd("ceiling",v)} active={sel.ceiling===v}/>
@@ -2387,73 +2395,78 @@
                 <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
                   letterSpacing:"0.06em", marginBottom:8 }}>Покрытие</div>
                 <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
-                  {[["none","Не трогаем"],["linoleum","Линолеум"],["laminate","Ламинат"],
-                    ["spc","SPC / Кварцвинил"],["tile","Плитка"]].map(([v,l])=>(
+                  {[["linoleum","Линолеум"],["laminate","Ламинат"],
+                    ["spc","SPC / Кварцвинил"],["tile","Плитка"],["none","Не трогаем"]].map(([v,l])=>(
                     <StagePill key={v} label={l} icon={STAGE_ICONS.floor}
                       selected={sel.floorCovering===v} onClick={()=>upd("floorCovering",v)}/>
                   ))}
                 </div>
-                {/* Выравнивание — авто если стяжка в черновых */}
-                {(sel.roughItems||[]).includes("screed") ? (
-                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
-                    padding:"12px 16px", marginBottom:8 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
-                      ✓ Выравнивание включено в черновые работы (стяжка)
+                {/* Выравнивание — только если выбрано покрытие. Авто если стяжка в черновых */}
+                {sel.floorCovering && sel.floorCovering !== "none" && (
+                  (sel.roughItems||[]).includes("screed") ? (
+                    <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                      padding:"12px 16px", marginBottom:8 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                        ✓ Выравнивание включено в черновые работы (стяжка)
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
-                      letterSpacing:"0.06em", marginBottom:8 }}>
-                      Выравнивание пола · +{CONFIG.independent.prices.floorLevelingM2.toLocaleString()} ₸/м²
-                    </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:4 }}>
-                      {[["yes","✓ Добавить стяжку"],["no","— Не нужно"]].map(([v,l])=>(
-                        <button key={v} onClick={()=>upd("floorLeveling",v)} style={{
-                          padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer",
-                          border:`1.5px solid ${sel.floorLeveling===v?T.text:T.border}`,
-                          background: sel.floorLeveling===v?T.text:T.bgCard,
-                          color: sel.floorLeveling===v?T.white:T.text,
-                        }}>{l}</button>
-                      ))}
-                    </div>
-                  </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                        letterSpacing:"0.06em", marginBottom:8 }}>
+                        Выравнивание пола · +{CONFIG.independent.prices.floorLevelingM2.toLocaleString()} ₸/м²
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:4 }}>
+                        {[["yes","✓ Добавить стяжку"],["no","— Не нужно"]].map(([v,l])=>(
+                          <button key={v} onClick={()=>upd("floorLeveling",v)} style={{
+                            padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer",
+                            border:`1.5px solid ${sel.floorLeveling===v?T.text:T.border}`,
+                            background: sel.floorLeveling===v?T.text:T.bgCard,
+                            color: sel.floorLeveling===v?T.white:T.text,
+                          }}>{l}</button>
+                        ))}
+                      </div>
+                    </>
+                  )
                 )}
                 <Nav/>
               </>)}
 
               {stage === "walls" && (<>
                 <StageHeader icon={STAGE_ICONS.walls} title="Стены" subtitle="Отделка и подготовка."/>
-                {[["none","Не трогаем",""],["wallpaper","Обои",""],
-                  ["paint","Покраска",""],["decorative","Декоративная отделка","Штукатурка, венецианка"]].map(([v,t,s])=>(
+                {[["wallpaper","Обои",""],
+                  ["paint","Покраска",""],["decorative","Декоративная отделка","Штукатурка, венецианка"],
+                  ["none","Не трогаем",""]].map(([v,t,s])=>(
                   <OptionRow key={v} icon={STAGE_ICONS.walls} title={t} sub={s}
                     onClick={()=>upd("walls",v)} active={sel.walls===v}/>
                 ))}
-                {/* Выравнивание — авто если штукатурка в черновых */}
-                {(sel.roughItems||[]).includes("plastering") ? (
-                  <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
-                    padding:"12px 16px", marginTop:14 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
-                      ✓ Штукатурка стен включена в черновые работы
+                {/* Штукатурка — только если выбрана отделка. Авто если штукатурка в черновых */}
+                {sel.walls && sel.walls !== "none" && (
+                  (sel.roughItems||[]).includes("plastering") ? (
+                    <div style={{ background:T.greenLight, border:`1px solid #A8D5B5`, borderRadius:T.r,
+                      padding:"12px 16px", marginTop:14 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:T.greenText }}>
+                        ✓ Штукатурка стен включена в черновые работы
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
-                      letterSpacing:"0.06em", margin:"14px 0 8px" }}>
-                      Штукатурка стен · +{CONFIG.independent.prices.wallLevelingM2.toLocaleString()} ₸/м²
-                    </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                      {[["yes","✓ Добавить штукатурку"],["no","— Не нужно"]].map(([v,l])=>(
-                        <button key={v} onClick={()=>upd("wallLeveling",v)} style={{
-                          padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer",
-                          border:`1.5px solid ${sel.wallLeveling===v?T.text:T.border}`,
-                          background: sel.wallLeveling===v?T.text:T.bgCard,
-                          color: sel.wallLeveling===v?T.white:T.text,
-                        }}>{l}</button>
-                      ))}
-                    </div>
-                  </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                        letterSpacing:"0.06em", margin:"14px 0 8px" }}>
+                        Штукатурка стен · +{CONFIG.independent.prices.wallLevelingM2.toLocaleString()} ₸/м²
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                        {[["yes","✓ Добавить штукатурку"],["no","— Не нужно"]].map(([v,l])=>(
+                          <button key={v} onClick={()=>upd("wallLeveling",v)} style={{
+                            padding:"12px", borderRadius:T.r, fontSize:13, fontWeight:600, cursor:"pointer",
+                            border:`1.5px solid ${sel.wallLeveling===v?T.text:T.border}`,
+                            background: sel.wallLeveling===v?T.text:T.bgCard,
+                            color: sel.wallLeveling===v?T.white:T.text,
+                          }}>{l}</button>
+                        ))}
+                      </div>
+                    </>
+                  )
                 )}
                 <Nav/>
               </>)}
