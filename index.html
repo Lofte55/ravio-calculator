@@ -1014,7 +1014,7 @@
     // ═══════════════════════════════════════════════════════════════
     // ЭКРАН РЕЗУЛЬТАТА
     // ═══════════════════════════════════════════════════════════════
-    const ResultScreen = ({ sel, rankedContractors, onChoose, onBack, onReset }) => {
+    const ResultScreen = ({ sel, rankedContractors, onChoose, onBack, onReset, onExpertAudit }) => {
       const [activeId, setActiveId] = useState("independent");
       const allProfiles = [CONFIG.independent, ...rankedContractors];
       const indepResult = calculateTotal(sel, CONFIG.independent);
@@ -1271,8 +1271,29 @@
                 fontSize:14, fontWeight:700, color:T.accent, cursor:"pointer" }}>
                 {tr("Оставить заявку")}
               </button>
+            </div>
+
+            {/* Платный продукт: независимая проверка от эксперта */}
+            <button onClick={onExpertAudit} className="rayo-scope-card" style={{
+              width:"100%", marginTop:16, display:"flex", alignItems:"center", gap:14,
+              padding:"16px 18px", background:T.bgDark, border:`1.5px solid ${T.bgDark}`,
+              borderRadius:T.rLg, cursor:"pointer", textAlign:"left" }}>
+              <div style={{ width:44, height:44, borderRadius:12, flexShrink:0, background:T.accent,
+                display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>🔍</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:"#fff", marginBottom:3 }}>
+                  {tr("Независимая проверка от эксперта")}
+                </div>
+                <div style={{ fontSize:12.5, color:"rgba(255,255,255,0.6)", lineHeight:1.5 }}>
+                  {tr("Эксперт приедет, проверит смету и качество работ подрядчика. Защита от переплат и брака.")}
+                </div>
+              </div>
+              <span style={{ color:T.accent, fontSize:20, flexShrink:0 }}>→</span>
+            </button>
+
+            <div style={{ textAlign:"center", marginTop:14 }}>
               <button onClick={onReset} style={{ fontSize:13, color:T.textMuted, background:"none",
-                border:"none", cursor:"pointer", textDecoration:"underline", textAlign:"center" }}>
+                border:"none", cursor:"pointer", textDecoration:"underline" }}>
                 {tr("Начать сначала")}
               </button>
             </div>
@@ -1293,7 +1314,8 @@
       return true; // временно отключён для тестирования
     }
 
-    const LeadForm = ({ sel, chosenProfile, onSubmit, onBack }) => {
+    const LeadForm = ({ sel, chosenProfile, onSubmit, onBack, leadType = "contractor" }) => {
+      const isAudit = leadType === "expert_audit";
       const [lead, setLead] = useState({ name:"", phone:"", contact:"whatsapp", timing:"month" });
       const [errors, setErrors] = useState({});
       const [consent, setConsent] = useState(false);
@@ -1370,6 +1392,7 @@
             Object.entries(result.breakdown || {}).map(([k, v]) => [k, Math.round(v.cost) || 0])
           ),
           unavailableStages:result.unavail,
+          leadType: leadType,  // "contractor" | "expert_audit"
           source:"rayo_calculator", calculatedAt:new Date().toISOString(),
           // Поля безопасности — проверяются на бэкенде
           idempotencyKey: idemRef.current,
@@ -1392,9 +1415,11 @@
             <div style={{ background:T.bgCard, borderRadius:T.rLg, padding:isMobile?"20px":"28px",
               border:`1px solid ${T.border}` }}>
               <StepLabel label="Заявка"/>
-              <h1 style={{ fontSize:26, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.4 }}>{tr("Оставьте контакты")}</h1>
+              <h1 style={{ fontSize:26, fontWeight:800, color:T.text, marginBottom:6, letterSpacing:-0.4 }}>{isAudit ? tr("Заявка на независимую проверку") : tr("Оставьте контакты")}</h1>
               <p style={{ fontSize:14, color:T.textSub, marginBottom:24, lineHeight:1.6 }}>
-                {tr("Подрядчик получит ваш полный расчёт и свяжется в течение рабочего дня.")}
+                {isAudit
+                  ? tr("Эксперт свяжется с вами, согласует выезд и проверит смету и качество работ подрядчика.")
+                  : tr("Подрядчик получит ваш полный расчёт и свяжется в течение рабочего дня.")}
               </p>
 
               {/* Honeypot — невидимо для людей, боты заполняют */}
@@ -1481,7 +1506,7 @@
                     <span className="rayo-spinner"/>
                     {tr("Загрузка...")}
                   </span>
-                ) : tr("Отправить заявку →")}
+                ) : (isAudit ? tr("Заказать проверку →") : tr("Отправить заявку →"))}
               </Btn>
               <button onClick={onBack} style={{ display:"block", width:"100%", textAlign:"center",
                 marginTop:12, fontSize:13, color:T.textSub, background:"none", border:"none",
@@ -1539,7 +1564,9 @@
               </div>
               <h1 style={{ fontSize:22, fontWeight:800, color:T.text, marginBottom:10 }}>{tr("Заявка отправлена")}</h1>
               <p style={{ fontSize:14, color:T.textSub, marginBottom:24, lineHeight:1.6 }}>
-                {tr("Подрядчик получил вашу смету и свяжется в течение рабочего дня.")}
+                {leadPayload && leadPayload.leadType === "expert_audit"
+                  ? tr("Эксперт свяжется с вами для согласования независимой проверки.")
+                  : tr("Подрядчик получил вашу смету и свяжется в течение рабочего дня.")}
               </p>
 
               {r && chosen && (
@@ -1579,6 +1606,7 @@
       const [chosen, setChosen]         = useState(null);
       const [errors, setErrors]         = useState({});
       const [leadPayload, setLeadPayload] = useState(null);
+      const [leadType, setLeadType]     = useState("contractor"); // "contractor" | "expert_audit"
       const [animKey, setAnimKey]         = useState(0);
       // Перерисовка всего приложения при смене языка
       const [, forceLang] = useState(0);
@@ -1666,7 +1694,7 @@
         setErrors({}); return true;
       };
       const reset = () => {
-        setSel({...INIT_SEL}); setGStep("scope"); setChosen(null);
+        setSel({...INIT_SEL}); setGStep("scope"); setChosen(null); setLeadType("contractor");
         setErrors({}); setRanked([]); setLeadPayload(null); setAnimKey(k=>k+1);
         // Сброс прогресса этапов — иначе панель показывает старые «пройденные» этапы
         setMicroSteps([]); setMicroIdx(0); setResultLoading(false); setEditingArea(false);
@@ -1715,16 +1743,21 @@
         <ResultScreen sel={sel} rankedContractors={ranked}
           onChoose={p => {
             track("lead_form_open", { contractor: p.name, sid: SID });
-            setChosen(p); setAnimKey(k=>k+1); setGStep("lead");
+            setLeadType("contractor"); setChosen(p); setAnimKey(k=>k+1); setGStep("lead");
+          }}
+          onExpertAudit={() => {
+            track("expert_audit_open", { sid: SID });
+            setLeadType("expert_audit"); setChosen(CONFIG.independent); setAnimKey(k=>k+1); setGStep("lead");
           }}
           onBack={() => { setMicroIdx(microSteps.length-1); setAnimKey(k=>k+1); setGStep("micro"); }}
           onReset={reset}/>
       );
       if (gStep === "lead" && chosen) return (
-        <LeadForm sel={sel} chosenProfile={chosen}
+        <LeadForm sel={sel} chosenProfile={chosen} leadType={leadType}
           onSubmit={p => {
-            track("lead_sent", { contractor: chosen.name, scope: sel.calculationScope,
-              stages: sel.selectedStages.join(","), totalMin: p.totalMin, sid: SID });
+            track(leadType === "expert_audit" ? "expert_audit_sent" : "lead_sent",
+              { contractor: chosen.name, scope: sel.calculationScope,
+                stages: sel.selectedStages.join(","), totalMin: p.totalMin, sid: SID });
             setLeadPayload(p); setAnimKey(k=>k+1); setGStep("success");
           }}
           onBack={() => { setAnimKey(k=>k+1); setGStep("result"); }}/>

@@ -166,6 +166,7 @@ function validate(b) {
             .filter(([k]) => ALLOWED.stages.includes(k))
             .map(([k, v]) => [k, Number(v) || 0])) : {},
       sid: str(b.sid, 40),
+      leadType: b.leadType === "expert_audit" ? "expert_audit" : "contractor",
     },
   };
 }
@@ -211,8 +212,12 @@ async function toTelegram(s) {
   if (!token || !chat) return;
   const unavail = (s.unavailableStages||[]).length
     ? `\n⚠️ Не выполняет: ${s.unavailableStages.map(ru).join(", ")}` : "";
+  const audit = s.leadType === "expert_audit";
+  const header = audit
+    ? `🔍 <b>ЗАЯВКА НА НЕЗАВИСИМУЮ ПРОВЕРКУ (эксперт)</b>\n<i>Платная услуга — выезд эксперта</i>\n\n`
+    : `🏗 <b>Новая заявка RAVIO · Павлодар</b>\n\n`;
   const text =
-    `🏗 <b>Новая заявка RAVIO · Павлодар</b>\n\n` +
+    header +
     `👤 <b>${s.userName}</b>\n` +
     `📞 ${s.userPhone} · ${ru(s.userContact)}\n` +
     `📅 ${ru(s.userTiming)}\n\n` +
@@ -222,7 +227,7 @@ async function toTelegram(s) {
     `📋 <b>Этапы и детали:</b>\n${stageLines(s)}\n\n` +
     `💰 <b>${money(s.totalMin)} — ${money(s.totalMax)}</b>\n` +
     `   (работы: ${money(s.workTotal)}${s.includeMaterials==="yes"?` · матер: ~${money(s.matCost)}`:""})\n` +
-    `🤝 ${s.selectedProfileName} · совм. ${s.compatibility}%${unavail}\n\n` +
+    (audit ? `🔍 Тип: независимая проверка сметы/качества` : `🤝 ${s.selectedProfileName} · совм. ${s.compatibility}%${unavail}`) + `\n\n` +
     `🕐 ${new Date().toLocaleString("ru-RU")}`;
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
@@ -243,7 +248,8 @@ async function toSheets(s) {
     condition: ru(s.condition), calculationScope: ru(s.calculationScope),
     selectedStages: (s.selectedStages||[]).map(ru).join(", "),
     totalMin: money(s.totalMin), totalMax: money(s.totalMax),
-    selectedProfileName: s.selectedProfileName,
+    selectedProfileName: s.leadType === "expert_audit"
+      ? "🔍 НЕЗАВИСИМАЯ ПРОВЕРКА (эксперт)" : s.selectedProfileName,
   };
   await fetch(url, {
     method: "POST",
@@ -260,7 +266,9 @@ async function toEmail(s) {
   const priv = process.env.EMAILJS_PRIVATE_KEY;
   const to = process.env.EMAILJS_TO_EMAIL;
   if (!service || !template || !pub) return;
+  const audit = s.leadType === "expert_audit";
   const message = [
+    ...(audit ? ["🔍 ЗАЯВКА НА НЕЗАВИСИМУЮ ПРОВЕРКУ (эксперт) — платная услуга", ""] : []),
     `📞 ${s.userPhone}  |  ${ru(s.userContact)}`,
     `📅 ${ru(s.userTiming)}`, "",
     `🏠 ${s.area} м²  |  ${s.rooms} комн.  |  ${ru(s.condition)}`,
@@ -269,7 +277,7 @@ async function toEmail(s) {
     "── ЭТАПЫ ──", stageLines(s).replace(/^ {2}/gm, ""), "",
     "── СМЕТА ──",
     `💰 ${money(s.totalMin)} — ${money(s.totalMax)}`,
-    `👷 Подрядчик: ${s.selectedProfileName}`,
+    audit ? `🔍 Тип: независимая проверка` : `👷 Подрядчик: ${s.selectedProfileName}`,
   ].join("\n");
   const body = {
     service_id: service, template_id: template, user_id: pub,
