@@ -2514,6 +2514,89 @@
       return <div/>;
     }
 
+    // ── Футер — копия футера главного сайта https://ravio.kz/ (Tilda).
+    //    Цвета оттуда же: фон #1E2028, заголовки #F5C842, ссылки #9D9FA8,
+    //    дисклеймер в блоке #272930. Ссылки ведут на главный сайт. ──
+    const FOOTER_COLS = [
+      { title: "Сервис", items: [
+        { label: "Главная",       href: "https://ravio.kz/" },
+        { label: "Калькулятор",   href: "https://calculator-ravio.kz/" },
+        { label: "Как работает",  href: "https://ravio.kz/#why" },
+      ]},
+      { title: "Партнёрам", items: [
+        { label: "Стать партнером",         href: "https://ravio.kz/#partners" },
+        { label: "Условия для партнерства", href: "https://ravio.kz/#partners" },
+      ]},
+      { title: "Помощь", items: [
+        { label: "FAQ",                         href: "https://ravio.kz/#faq" },
+        { label: "Связаться с нами",            href: "https://ravio.kz/#faq" },
+        { label: "Политика конфиденциальности", href: "https://ravio.kz/polyce" },
+      ]},
+    ];
+
+    function SiteFooter() {
+      const isMobile = useIsMobile();
+      const linkStyle = { display:"block", color:"#9D9FA8", fontSize:14, lineHeight:1.55,
+        textDecoration:"none", marginBottom:10, transition:"color .2s" };
+      return (
+        <footer style={{ background:"#1E2028", fontFamily:T.font, marginTop:0 }}>
+          <style>{`.rv-footer a:hover{color:#FFFFFF !important}`}</style>
+          <div className="rv-footer" style={{ maxWidth:1160, margin:"0 auto",
+            padding: isMobile ? "40px 16px 28px" : "56px 24px 32px" }}>
+
+            <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 32 : 64, alignItems:"flex-start" }}>
+
+              {/* Лого + город */}
+              <div style={{ flexShrink:0, marginRight: isMobile ? 0 : "auto" }}>
+                <a href="https://ravio.kz/" style={{ display:"inline-block" }}>
+                  <img src="logo.svg" alt="RAVIO" style={{ height:40, display:"block" }}/>
+                </a>
+                <div style={{ color:"#9D9FA8", fontSize:14, marginTop:14 }}>{tr("Павлодар, Казахстан")}</div>
+              </div>
+
+              {/* Колонки ссылок */}
+              <div style={{ display:"grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(160px, auto))",
+                gap: isMobile ? 28 : 56 }}>
+                {FOOTER_COLS.map(col => (
+                  <div key={col.title}>
+                    <div style={{ color:"#F5C842", fontSize:12, fontWeight:600,
+                      textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14 }}>
+                      {tr(col.title)}
+                    </div>
+                    {col.items.map(it => (
+                      <a key={it.label} href={it.href} style={linkStyle}>{tr(it.label)}</a>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Разделитель */}
+            <div style={{ height:1, background:"rgba(157,159,168,0.3)", margin: isMobile ? "28px 0 20px" : "40px 0 24px" }}/>
+
+            {/* Дисклеймер */}
+            <div style={{ display:"flex", gap:13, alignItems:"flex-start",
+              background:"#272930", borderRadius:12, padding:16, marginBottom:20 }}>
+              <span style={{ flexShrink:0, width:18, height:18, borderRadius:"50%",
+                border:"1.5px solid #9D9FA8", color:"#9D9FA8", fontSize:11, fontWeight:700,
+                display:"flex", alignItems:"center", justifyContent:"center", marginTop:1 }}>!</span>
+              <div style={{ fontSize:12, lineHeight:1.55 }}>
+                <span style={{ color:"#FFFFFF", fontWeight:600 }}>{tr("Дисклеймер:")}</span>{" "}
+                <span style={{ color:"#9D9FA8" }}>
+                  {tr("Расчёт RAVIO является предварительным и не является официальной сметой. Окончательная стоимость определяется индивидуально с подрядчиком и зависит от выбранных материалов, сложности объекта и сроков выполнения работ. RAVIO не выполняет строительные работы и не несёт ответственности за качество услуг подрядчиков.")}
+                </span>
+              </div>
+            </div>
+
+            {/* Копирайт */}
+            <div style={{ color:"#FFFFFF", fontSize:12 }}>© 2026 RAVIO</div>
+          </div>
+        </footer>
+      );
+    }
+
     // ── Error Boundary — ловит любую ошибку рендера, показывает экран с
     //    перезагрузкой вместо белого экрана. Авто-перезагрузка один раз. ──
     class ErrorBoundary extends React.Component {
@@ -2556,7 +2639,7 @@
     setTimeout(() => { try { sessionStorage.removeItem("ravio_reloaded"); } catch(_) {} }, 3000);
 
     ReactDOM.createRoot(document.getElementById('root')).render(
-      <ErrorBoundary><RayoCalculator/></ErrorBoundary>
+      <ErrorBoundary><RayoCalculator/><SiteFooter/></ErrorBoundary>
     );
   </script>
 </body>
