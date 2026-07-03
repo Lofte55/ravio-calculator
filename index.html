@@ -3,8 +3,70 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>RAVIO — Калькулятор ремонта Павлодар</title>
-  <meta name="robots" content="noindex, nofollow"/>
+  <title>RAVIO — Калькулятор стоимости ремонта квартиры в Павлодаре | Расчёт сметы онлайн</title>
+
+  <!-- ── SEO ── -->
+  <meta name="description" content="Бесплатный онлайн-калькулятор ремонта квартиры в Павлодаре. Рассчитайте стоимость ремонта за 2 минуты: демонтаж, электрика, сантехника, санузел, кухня, полы, стены, потолки. Реальные цены подрядчиков Павлодара, смета по этапам и срокам."/>
+  <meta name="keywords" content="калькулятор ремонта, стоимость ремонта квартиры, ремонт квартиры Павлодар, смета на ремонт, цены на ремонт Павлодар, подрядчики Павлодар, RAVIO"/>
+  <meta name="robots" content="index, follow"/>
+  <meta name="author" content="RAVIO"/>
+  <link rel="canonical" href="https://calculator-ravio.kz/"/>
+
+  <!-- Гео-привязка (Павлодар, Казахстан) -->
+  <meta name="geo.region" content="KZ-PAV"/>
+  <meta name="geo.placename" content="Павлодар"/>
+  <meta name="geo.position" content="52.287054;76.967402"/>
+  <meta name="ICBM" content="52.287054, 76.967402"/>
+
+  <!-- Open Graph (соцсети, мессенджеры, ИИ-краулеры) -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="RAVIO"/>
+  <meta property="og:title" content="RAVIO — Калькулятор стоимости ремонта квартиры в Павлодаре"/>
+  <meta property="og:description" content="Рассчитайте стоимость ремонта квартиры в Павлодаре за 2 минуты. Смета по этапам, реальные подрядчики, актуальные цены."/>
+  <meta property="og:url" content="https://calculator-ravio.kz/"/>
+  <meta property="og:image" content="https://calculator-ravio.kz/logo.svg"/>
+  <meta property="og:locale" content="ru_RU"/>
+  <meta property="og:locale:alternate" content="kk_KZ"/>
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:title" content="RAVIO — Калькулятор ремонта квартиры в Павлодаре"/>
+  <meta name="twitter:description" content="Бесплатный расчёт стоимости ремонта за 2 минуты. Цены подрядчиков Павлодара."/>
+  <meta name="twitter:image" content="https://calculator-ravio.kz/logo.svg"/>
+
+  <!-- Структурированные данные (Google, Яндекс, ИИ-ассистенты) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://calculator-ravio.kz/#app",
+        "name": "RAVIO — Калькулятор ремонта квартиры",
+        "url": "https://calculator-ravio.kz/",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web",
+        "inLanguage": ["ru", "kk"],
+        "description": "Онлайн-калькулятор стоимости ремонта квартиры в Павлодаре: смета по этапам работ (демонтаж, электрика, сантехника, санузел, кухня, полы, стены, потолки), сроки и реальные подрядчики.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KZT" },
+        "provider": { "@id": "https://ravio.kz/#org" }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://ravio.kz/#org",
+        "name": "RAVIO",
+        "url": "https://ravio.kz/",
+        "logo": "https://calculator-ravio.kz/logo.svg",
+        "areaServed": {
+          "@type": "City",
+          "name": "Павлодар",
+          "address": { "@type": "PostalAddress", "addressLocality": "Павлодар", "addressCountry": "KZ" }
+        }
+      }
+    ]
+  }
+  </script>
+
   <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 
   <!-- Yandex.Metrika counter -->
@@ -28,7 +90,35 @@
   <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
 </head>
 <body>
-  <div id="root"></div>
+  <!-- Статичный контент для поисковиков и ИИ-краулеров без JavaScript.
+       React заменяет его приложением при загрузке (createRoot очищает #root). -->
+  <div id="root">
+    <div style="max-width:960px;margin:0 auto;padding:48px 24px;font-family:system-ui,sans-serif;color:#1E2028;">
+      <h1>Калькулятор стоимости ремонта квартиры в Павлодаре</h1>
+      <p>RAVIO — бесплатный онлайн-калькулятор ремонта квартиры в Павлодаре (Казахстан).
+        Ответьте на несколько вопросов и получите предварительную смету за 2 минуты:
+        стоимость по каждому этапу работ, общий диапазон цены и сроки в рабочих днях,
+        а также список реальных подрядчиков Павлодара с актуальными ценами.</p>
+      <h2>Что считает калькулятор</h2>
+      <ul>
+        <li>Демонтаж и вывоз мусора</li>
+        <li>Электрика (в том числе разводка с нуля)</li>
+        <li>Сантехника и санузел под ключ</li>
+        <li>Кухня: фартук, разводка, установка</li>
+        <li>Полы: стяжка, ламинат, плитка, линолеум</li>
+        <li>Стены: штукатурка, шпаклёвка, обои, покраска</li>
+        <li>Потолки: натяжные, гипсокартон, покраска</li>
+      </ul>
+      <h2>Как это работает</h2>
+      <p>Выберите тип ремонта (полный ремонт, отдельные комнаты или зоны), укажите площадь
+        и состояние квартиры — калькулятор рассчитает смету по ценам подрядчиков Павлодара.
+        Расчёт предварительный и не является официальной сметой: окончательная стоимость
+        определяется с подрядчиком и зависит от материалов, сложности объекта и сроков.</p>
+      <p>Сервис доступен на русском и казахском языках.
+        Главный сайт: <a href="https://ravio.kz/">ravio.kz</a>.</p>
+      <p>Для расчёта включите JavaScript — калькулятор работает в браузере.</p>
+    </div>
+  </div>
 
   <!-- Подрядчики, цены и коэффициенты — отдельный файл (грузится ДО приложения).
        Менять цены/подрядчиков нужно в pricing.js -->
