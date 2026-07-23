@@ -4,9 +4,24 @@
    ЭТО ЕДИНСТВЕННЫЙ ФАЙЛ, который нужно править для изменения цен и подрядчиков.
    Интерфейс (index.html) трогать НЕ нужно.
 
+   ── ОТКУДА ЦЕНЫ ──
+   contractor_1 "СтройФормат" — РЕАЛЬНЫЙ прайс подрядчика (Павлодар, 2022)
+   с мягкой индексацией к 2026 году (~+30%). Составные позиции калькулятора
+   (обои, покраска и т.п.) собраны из отдельных операций прайса:
+   например «Обои м²» = шпатлёвка 2 слоя + финиш + грунт + поклейка.
+   contractor_2 "РемПро" — выдуманный, чуть дороже (+8–20% выборочно).
+   independent — среднерыночный ориентир (≈ среднее двух + округление).
+
+   ── ЕДИНИЦЫ ИЗМЕРЕНИЯ (важно! так считает index.html) ──
+   • walls*M2 и wallLevelingM2 — за м² КВАРТИРЫ (множитель стен ×2.6 уже
+     зашит в цену: цена работ за м² стен × 2.6)
+   • plasteringM2 (черновые) — за м² СТЕН (движок сам умножает на 2.6)
+   • полы, потолки, стяжка, демонтаж — за м² квартиры
+   • *Fixed — фикс. за пакет работ;  *Price — за 1 шт;  *Meter* — за 1 п.м
+   • materialsPercent — доля материалов от стоимости работ (0.50 = +50%)
+
    ── КАК ИЗМЕНИТЬ ЦЕНУ ──
    Найди нужного подрядчика ниже → внутри его блока "prices" поменяй число.
-   Например, у "РемПро" сделать ламинат дороже: floorLaminateM2: 13000 → 14000.
 
    ── КАК ДОБАВИТЬ НОВОГО ПОДРЯДЧИКА ──
    Скопируй любой блок { ... } внутри "contractors: [ ... ]",
@@ -17,12 +32,6 @@
      • priceLevel— "cheap" (дешёвый) / "mid" (средний) / "premium" (дорогой)
      • services  — true = делает этот этап, false = НЕ делает
      • prices    — его цены (если services:false для этапа → ставь 0)
-
-   ── ЧТО ОЗНАЧАЮТ КЛЮЧИ ЦЕН ──
-   *M2     — цена за 1 м²;   *Fixed — фикс. цена за работу;
-   *Price  — цена за 1 шт (розетка/выключатель/светильник);
-   *Meter* — цена за 1 погонный метр труб;
-   materialsPercent — доля материалов от работ (0.37 = +37%).
 
    ВАЖНО: после правок — сохранить файл и сообщить, чтобы залить на сайт.
    Цены видны в браузере (калькулятор считает у клиента) — это не секрет,
@@ -43,43 +52,45 @@ window.RAVIO_CONFIG = {
       kitchen:true, ceiling:true, floor:true, walls:true,
     },
     prices: {
-      demolitionLightM2:  4000,
-      demolitionMediumM2: 8000,
-      demolitionFullM2:   12000,
-      wasteRemovalFixed:  70000,
-      plasteringM2:    2000,
-      screedM2:        3000,
-      selfLevelingM2:  2000,
-      radiatorUnit:   18000,
-      soundproofingM2: 3500,
-      electricOutletPrice:  4500,
-      electricSwitchPrice:  3500,
-      electricLightPrice:   3000,
-      plumbingMeterPartial: 9000,
-      plumbingMeterFull:    15000,
-      plumbingPartialFixed: 250000,
-      plumbingFullFixed:    600000,
-      electricGroovingM2:  3000,        // штрабление стен ₸/м²
-      bathroomReplaceFixed:    350000,  // только замена сантехники
-      bathroomCosmeticFixed:   450000,
-      bathroomPartialFixed:    800000,  // частичный ремонт
-      bathroomFullOneFixed:    1200000,
-      bathroomFullTwoFixed:    2200000,
-      kitchenBasicFixed:       500000,
-      kitchenWithApronFixed:   750000,
-      ceilingStretchM2:  4000,
-      ceilingPaintM2:    8000,
-      ceilingGypsumM2:   8500,          // гипсокартон
-      floorLinoleumM2:   7000,
-      floorLaminateM2:   12000,
-      floorSpcM2:        16000,
-      floorTileM2:       20000,
-      floorLevelingM2:   5000,
-      wallsWallpaperM2:  10000,
-      wallsPaintM2:      14000,
-      wallsDecorativeM2: 22000,
-      wallLevelingM2:    6000,
-      materialsPercent:  0.37,
+      demolitionLightM2:  2700,   // калибровка по реальному кейсу 2026
+      demolitionMediumM2: 3500,
+      demolitionFullM2:   5000,
+      wasteRemovalFixed:  75000,
+      plasteringM2:    3000,      // за м² стен, под маяк готовыми смесями
+      screedM2:        3300,
+      selfLevelingM2:  2200,      // наливной + грунт-пропитка
+      radiatorUnit:   16000,
+      soundproofingM2: 4800,      // утеплитель + обшивка ГКЛ
+      electricOutletPrice:  3300, // розетка + точка выхода
+      electricSwitchPrice:  3300,
+      electricLightPrice:   5500, // точка + монтаж светильника/софита
+      plumbingMeterPartial: 2800,
+      plumbingMeterFull:    3400,
+      plumbingPartialFixed: 130000,
+      plumbingFullFixed:    270000,
+      plumbingRiserUnit:    28000,  // замена 1 стояка воды (гор. или хол.)
+      plumbingSewerFixed:   65000,  // замена канализационного стояка
+      electricGroovingM2:  3700,        // штрабление + прокладка ₸/м²
+      bathroomReplaceFixed:    90000,   // только замена сантехники
+      bathroomCosmeticFixed:   160000,
+      bathroomPartialFixed:    240000,  // частичный ремонт
+      bathroomFullOneFixed:    520000,
+      bathroomFullTwoFixed:    950000,
+      kitchenBasicFixed:       300000,
+      kitchenWithApronFixed:   370000,
+      ceilingStretchM2:  2300,          // реальная цена рынка 2026
+      ceilingPaintM2:    6800,          // шпатлёвка потолочная + покраска
+      ceilingGypsumM2:   11800,         // каркас + ГКЛ + отделка
+      floorLinoleumM2:   1700,
+      floorLaminateM2:   2500,
+      floorSpcM2:        3100,
+      floorTileM2:       5200,
+      floorLevelingM2:   2200,
+      wallsWallpaperM2:  13300,   // за м² квартиры (композит × 2.6 стен)
+      wallsPaintM2:      16500,   // шпатл. + стеклохолст + покраска × 2.6
+      wallsDecorativeM2: 36000,   // декоративная с подготовкой × 2.6
+      wallLevelingM2:    8000,    // штукатурка под маяк × 2.6
+      materialsPercent:  0.50,
     },
     priceLevel: "mid", rating: null,
   },
@@ -87,53 +98,81 @@ window.RAVIO_CONFIG = {
   // ── ПОДРЯДЧИКИ (добавляй сюда новые блоки) ──
   contractors: [
     {
-      id: "contractor_1", name: "РемПро",
-      type: "company", subtitle: "Строительная компания",
-      rating: 4.8, priceLevel: "mid",
+      // РЕАЛЬНЫЙ прайс (2022, индексация +30% к 2026)
+      id: "contractor_1", name: "СтройФормат",
+      type: "team", subtitle: "Бригада отделочников",
+      rating: 4.6, priceLevel: "cheap",
       services: {
         demolition:true, wasteRemoval:false, roughWorks:true,
         electric:true, plumbing:true, bathroom:true,
-        kitchen:false, ceiling:true, floor:true, walls:true,
-      },
-      prices: {
-        demolitionLightM2:3500, demolitionMediumM2:7500, demolitionFullM2:11000,
-        wasteRemovalFixed:0,
-        plasteringM2:2200, screedM2:3200, selfLevelingM2:2200, radiatorUnit:20000, soundproofingM2:3800,
-        electricOutletPrice:5000, electricSwitchPrice:4000, electricLightPrice:3500,
-        plumbingMeterPartial:10000, plumbingMeterFull:16000,
-        plumbingPartialFixed:270000, plumbingFullFixed:650000,
-        electricGroovingM2:3500, bathroomReplaceFixed:370000, bathroomPartialFixed:850000,
-        bathroomCosmeticFixed:480000, bathroomFullOneFixed:1300000, bathroomFullTwoFixed:2400000,
-        kitchenBasicFixed:0, kitchenWithApronFixed:0,
-        ceilingStretchM2:4500, ceilingPaintM2:8500, ceilingGypsumM2:9000,
-        floorLinoleumM2:7000, floorLaminateM2:13000, floorSpcM2:17000, floorTileM2:21000, floorLevelingM2:5500,
-        wallsWallpaperM2:11000, wallsPaintM2:15000, wallsDecorativeM2:23000, wallLevelingM2:6500,
-        materialsPercent:0.35,
-      },
-    },
-    {
-      id: "contractor_2", name: "МастерСтрой",
-      type: "company", subtitle: "Строительная компания",
-      rating: 4.6, priceLevel: "cheap",
-      services: {
-        demolition:true, wasteRemoval:true, roughWorks:true,
-        electric:false, plumbing:true, bathroom:true,
         kitchen:true, ceiling:true, floor:true, walls:true,
       },
       prices: {
-        demolitionLightM2:3800, demolitionMediumM2:7800, demolitionFullM2:11500,
-        wasteRemovalFixed:65000,
-        plasteringM2:1900, screedM2:2800, selfLevelingM2:1900, radiatorUnit:17000, soundproofingM2:3300,
-        electricOutletPrice:0, electricSwitchPrice:0, electricLightPrice:0,
-        plumbingMeterPartial:8000, plumbingMeterFull:13000,
-        plumbingPartialFixed:240000, plumbingFullFixed:580000,
-        electricGroovingM2:2800, bathroomReplaceFixed:330000, bathroomPartialFixed:750000,
-        bathroomCosmeticFixed:460000, bathroomFullOneFixed:1250000, bathroomFullTwoFixed:2300000,
-        kitchenBasicFixed:480000, kitchenWithApronFixed:720000,
-        ceilingStretchM2:3800, ceilingPaintM2:7800, ceilingGypsumM2:8000,
-        floorLinoleumM2:6800, floorLaminateM2:11500, floorSpcM2:15500, floorTileM2:19500, floorLevelingM2:4800,
-        wallsWallpaperM2:9500, wallsPaintM2:13500, wallsDecorativeM2:21000, wallLevelingM2:5800,
-        materialsPercent:0.36,
+        // РЕАЛЬНЫЙ факт 2026: 120 000 ₸ за 46 м² (пол деревянный + обои + плитка) ≈ 2600 ₸/м²
+        demolitionLightM2:2600, demolitionMediumM2:3400, demolitionFullM2:4800,
+        wasteRemovalFixed:0,
+        plasteringM2:2900,          // под маяк готовыми смесями 2000–2500 ×1.3
+        screedM2:3200,              // стяжка до 5 / 5–12 см ×1.3
+        selfLevelingM2:2100,        // наливной 1000–1200 + грунт 500 ×1.3
+        radiatorUnit:15000,         // РЕАЛЬНАЯ цена 2026
+        soundproofingM2:4500,       // утеплитель 700 + ГКЛ с утеплением ×1.3
+        electricOutletPrice:3200,   // розетка 1500 + точка 1000 ×1.3
+        electricSwitchPrice:3200,
+        electricLightPrice:5000,    // точка + бра/софит/плафон ×1.3
+        plumbingMeterPartial:2600,  // полипропилен 1800–2500 ×1.3
+        plumbingMeterFull:3200,
+        plumbingPartialFixed:120000,
+        plumbingFullFixed:250000,
+        plumbingRiserUnit:25000,    // РЕАЛЬНАЯ цена 2026: 25 000 ₸ за стояк
+        plumbingSewerFixed:50000,   // РЕАЛЬНАЯ цена 2026: замена канализации
+        electricGroovingM2:3500,    // электрика 1500 п.м ≈ 2 п.м на м² ×1.3
+        bathroomReplaceFixed:80000,   // приборы 3×10000 + подключение ×1.3
+        bathroomCosmeticFixed:150000, // панели ПВХ + потолок + мелочи
+        bathroomPartialFixed:220000,  // плитка частично + приборы
+        bathroomFullOneFixed:480000,  // плитка ~28м² × 6000–9000 + всё
+        bathroomFullTwoFixed:900000,
+        kitchenBasicFixed:280000,
+        kitchenWithApronFixed:340000, // + фартук кафель 3000–4000 ×1.3
+        ceilingStretchM2:2200,        // РЕАЛЬНАЯ цена 2026
+        ceilingPaintM2:6400,          // шпатлёвка потолочная (+500) + покраска ×1.3
+        ceilingGypsumM2:11000,        // каркас+ГКЛ ~3500 + отделка ×1.3
+        floorLinoleumM2:1600,         // настил 1200 ×1.3
+        floorLaminateM2:2300,         // укладка с подложкой 1600–2000 ×1.3
+        floorSpcM2:2900,
+        floorTileM2:4900,             // плитка пол 3500–4000 ×1.3
+        floorLevelingM2:2100,         // наливной + грунт ×1.3
+        wallsWallpaperM2:12500,       // (шпатл 2сл+финиш+грунт+обои) ×1.3 ×2.6
+        wallsPaintM2:15500,           // (шпатл+стеклохолст+грунт+покраска) ×1.3 ×2.6
+        wallsDecorativeM2:34000,      // декоративная 10000–14000 ×1.3 ×2.6
+        wallLevelingM2:7500,          // штукатурка под маяк ×1.3 ×2.6
+        materialsPercent:0.50,
+      },
+    },
+    {
+      // Выдуманный, чуть дороже реального (+8–20% выборочно)
+      id: "contractor_2", name: "РемПро",
+      type: "company", subtitle: "Строительная компания",
+      rating: 4.8, priceLevel: "mid",
+      services: {
+        demolition:true, wasteRemoval:true, roughWorks:true,
+        electric:true, plumbing:true, bathroom:true,
+        kitchen:true, ceiling:true, floor:true, walls:true,
+      },
+      prices: {
+        demolitionLightM2:2800, demolitionMediumM2:3700, demolitionFullM2:5200,
+        wasteRemovalFixed:75000,
+        plasteringM2:3200, screedM2:3500, selfLevelingM2:2300, radiatorUnit:17000, soundproofingM2:5000,
+        electricOutletPrice:3500, electricSwitchPrice:3500, electricLightPrice:6000,
+        plumbingMeterPartial:3000, plumbingMeterFull:3600,
+        plumbingPartialFixed:140000, plumbingFullFixed:290000,
+        plumbingRiserUnit:30000, plumbingSewerFixed:80000,
+        electricGroovingM2:3900, bathroomReplaceFixed:95000, bathroomPartialFixed:260000,
+        bathroomCosmeticFixed:175000, bathroomFullOneFixed:560000, bathroomFullTwoFixed:1050000,
+        kitchenBasicFixed:320000, kitchenWithApronFixed:390000,
+        ceilingStretchM2:2500, ceilingPaintM2:7200, ceilingGypsumM2:12500,
+        floorLinoleumM2:1800, floorLaminateM2:2600, floorSpcM2:3300, floorTileM2:5500, floorLevelingM2:2400,
+        wallsWallpaperM2:14000, wallsPaintM2:17500, wallsDecorativeM2:38000, wallLevelingM2:8500,
+        materialsPercent:0.52,
       },
     },
   ],

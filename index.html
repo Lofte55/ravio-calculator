@@ -281,7 +281,13 @@
           return { cost, available: true };
         }
         case "plumbing": {
-          if (!sel.plumbing || sel.plumbing === "none") return { cost: 0, available: true };
+          // Стояки и канализация — считаются отдельно, даже если разводку не трогаем
+          const risers = sel.plumbingRisers || [];
+          let riserCost = 0;
+          if (risers.includes("hot"))   riserCost += p.plumbingRiserUnit  || 0;
+          if (risers.includes("cold"))  riserCost += p.plumbingRiserUnit  || 0;
+          if (risers.includes("sewer")) riserCost += p.plumbingSewerFixed || 0;
+          if (!sel.plumbing || sel.plumbing === "none") return { cost: riserCost, available: true };
           const isPartial = sel.plumbing === "partial";
           const isFull = sel.plumbing === "full" || sel.plumbing === "from_scratch";
           const meters  = Number(sel.plumbingMeters) || 0;
@@ -290,10 +296,10 @@
           const scratchMult = sel.plumbing === "from_scratch" ? 1.3 : 1.0;
           if (meters > 0) {
             const rate = isPartial ? (p.plumbingMeterPartial || 9000) : (p.plumbingMeterFull || 15000);
-            return { cost: meters * rate * locCoef * scratchMult, available: true };
+            return { cost: meters * rate * locCoef * scratchMult + riserCost, available: true };
           }
           const fixed = isPartial ? (p.plumbingPartialFixed || 0) : (p.plumbingFullFixed || 0);
-          return { cost: fixed * scratchMult, available: true };
+          return { cost: fixed * scratchMult + riserCost, available: true };
         }
         case "bathroom": {
           if (!sel.bathroom || sel.bathroom === "none") return { cost: 0, available: true };
@@ -378,7 +384,8 @@
           return { min: Math.max(2, base), max: Math.max(4, base + 2) };
         }
         case "plumbing": {
-          if (!sel.plumbing || sel.plumbing === "none") return null;
+          const hasRisers = (sel.plumbingRisers || []).length > 0;
+          if (!sel.plumbing || sel.plumbing === "none") return hasRisers ? { min: 1, max: 2 } : null;
           if (sel.plumbing === "partial") return { min: 2, max: 3 };
           const meters = Number(sel.plumbingMeters) || 0;
           const base = meters > 0 ? Math.ceil(meters / 8) : 5;
@@ -519,13 +526,14 @@
       kitchen:"Кухня", ceiling:"Потолки", floor:"Полы", walls:"Стены", materials:"Материалы",
     };
 
-    const STAGE_ORDER = ["demolition","wasteRemoval","roughWorks","electric","plumbing","bathroom","kitchen","ceiling","floor","walls"];
+    // Этап "kitchen" убран из визарда (июль 2026) — код этапа оставлен, чтобы легко вернуть
+    const STAGE_ORDER = ["demolition","wasteRemoval","roughWorks","electric","plumbing","bathroom","ceiling","floor","walls"];
 
     const PATH_DEFAULTS = {
       full_repair: {
-        stages: ["demolition","wasteRemoval","roughWorks","electric","plumbing","bathroom","kitchen","ceiling","floor","walls"],
+        stages: ["demolition","wasteRemoval","roughWorks","electric","plumbing","bathroom","ceiling","floor","walls"],
         sel: { demolition:"medium", wasteRemoval:"yes", roughItems:["plastering","screed"], radiatorCount:"",
-               plumbing:"full", bathroom:"full_1", kitchen:"basic", ceiling:"stretch",
+               plumbing:"full", bathroom:"full_1", ceiling:"stretch",
                floorCovering:"laminate", floorLeveling:"no", walls:"paint", wallLeveling:"no" },
       },
       not_sure: {
@@ -552,6 +560,7 @@
       electricOutlets:"", electricSwitches:"", electricLights:"",
       // Сантехника
       plumbing:"none", plumbingLocation:"", plumbingMeters:"",
+      plumbingRisers:[],          // "hot" / "cold" / "sewer" — замена стояков и канализации
       // Санузел
       bathroomType:"",            // combined / separate
       bathroomCount:"1",          // 1 / 2
@@ -1467,6 +1476,7 @@
           electricOutlets:sel.electricOutlets, electricSwitches:sel.electricSwitches, electricLights:sel.electricLights,
           // Сантехника
           plumbing:sel.plumbing, plumbingLocation:sel.plumbingLocation, plumbingMeters:sel.plumbingMeters,
+          plumbingRisers:(sel.plumbingRisers||[]).join(","),
           // Санузел
           bathroomType:sel.bathroomType, bathroomCount:sel.bathroomCount,
           bathroomFixtureType:sel.bathroomFixtureType,
@@ -2334,7 +2344,7 @@
                   letterSpacing:"0.06em", marginBottom:8 }}>Объём работ</div>
                 {[
                   ["partial",      "Частично заменить",           "Подводка к приборам"],
-                  ["full",         "Полная замена",               "Все стояки и разводка"],
+                  ["full",         "Полная замена",               "Вся разводка по квартире"],
                   ["from_scratch", "С нуля — нет коммуникаций",  "Труб нет совсем, прокладываем всё"],
                   ["none",         "Не трогаем",                 "Оставляем как есть"],
                 ].map(([v,t,s])=>(
@@ -2386,6 +2396,29 @@
                       onChange={v=>upd("plumbingMeters",v)} suffix="п/м"/>
                   </div>
                 </>)}
+
+                {/* Замена стояков и канализации — отдельно, доступно даже при «Не трогаем» */}
+                <div style={{ fontSize:12, fontWeight:700, color:T.textMuted, textTransform:"uppercase",
+                  letterSpacing:"0.06em", margin:"14px 0 4px" }}>Замена стояков</div>
+                <div style={{ fontSize:12, color:T.textMuted, marginBottom:10 }}>
+                  Считаются отдельно от разводки — можно выбрать и без замены труб.
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:8 }}>
+                  {[["hot","🔥 Стояк горячей воды"],["cold","❄️ Стояк холодной воды"],["sewer","🚽 Канализация"]].map(([v,l])=>{
+                    const on = (sel.plumbingRisers||[]).includes(v);
+                    return (
+                      <button key={v} onClick={()=>setSel(p=>{
+                        const cur = p.plumbingRisers || [];
+                        return {...p, plumbingRisers: cur.includes(v) ? cur.filter(x=>x!==v) : [...cur, v]};
+                      })} style={{
+                        padding:"10px 8px", borderRadius:T.r, fontSize:12, fontWeight:600, cursor:"pointer",
+                        border:`1.5px solid ${on?T.text:T.border}`,
+                        background: on?T.text:T.bgCard,
+                        color: on?T.white:T.text, textAlign:"center",
+                      }}>{l}</button>
+                    );
+                  })}
+                </div>
                 <Nav/>
               </>)}
 
