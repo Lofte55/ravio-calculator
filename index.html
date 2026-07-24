@@ -82,6 +82,37 @@
   </script>
   <noscript><div><img src="https://mc.yandex.ru/watch/109587808" style="position:absolute;left:-9999px;" alt=""/></div></noscript>
   <!-- /Yandex.Metrika counter -->
+
+  <!-- Рекламная аналитика: GA4 (Google Ads) и Meta Pixel (Instagram).
+       Скрипты грузятся ТОЛЬКО если задан ID — до создания аккаунтов ничего не происходит. -->
+  <script>
+    window.RAVIO_GA4_ID = "G-JWYH9YG0VS";       // GA4 (Google Analytics 4)
+    window.RAVIO_GADS_ID = "AW-18346046793";    // Google Ads (та же gtag.js, ремаркетинг + конверсии)
+    window.RAVIO_META_PIXEL_ID = ""; // сюда ID пикселя Meta, вида "123456789012345"
+    (function(){
+      var id = window.RAVIO_GA4_ID || window.RAVIO_GADS_ID;
+      if (!id) return;
+      var s = document.createElement("script");
+      s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function(){ dataLayer.push(arguments); };
+      gtag("js", new Date());
+      if (window.RAVIO_GA4_ID)  gtag("config", window.RAVIO_GA4_ID);
+      if (window.RAVIO_GADS_ID) gtag("config", window.RAVIO_GADS_ID);
+    })();
+    (function(){
+      var id = window.RAVIO_META_PIXEL_ID;
+      if (!id) return;
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,"script","https://connect.facebook.net/en_US/fbevents.js");
+      fbq("init", id);
+      fbq("track", "PageView");
+    })();
+  </script>
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <!-- Версия Babel ЗАФИКСИРОВАНА: новые версии по умолчанию вставляют
@@ -216,10 +247,41 @@
       try {
         // Яндекс Метрика
         if (window.ym) ym(109587808, "reachGoal", event, params);
+        // GA4 / Google Ads (грузится только при заданном RAVIO_GA4_ID)
+        if (window.gtag) gtag("event", event, params);
+        // Meta Pixel: заявка = стандартное событие Lead (для оптимизации кампаний),
+        // остальные шаги — кастомные события
+        if (window.fbq) {
+          if (event === "lead_submit") fbq("track", "Lead", params);
+          else fbq("trackCustom", event, params);
+        }
         // Консоль для отладки
         console.log("[RAVIO]", event, params);
       } catch(e) {}
     }
+
+    // UTM-метки: запоминаем при первом заходе с рекламы (localStorage),
+    // чтобы источник дожил до отправки заявки даже через несколько сессий.
+    function getUtm() {
+      try {
+        const KEY = "ravio_utm";
+        const p = new URLSearchParams(location.search);
+        if (p.get("utm_source")) {
+          const utm = {
+            source: (p.get("utm_source") || "").slice(0, 60),
+            medium: (p.get("utm_medium") || "").slice(0, 60),
+            campaign: (p.get("utm_campaign") || "").slice(0, 80),
+            content: (p.get("utm_content") || "").slice(0, 80),
+            term: (p.get("utm_term") || "").slice(0, 80),
+          };
+          localStorage.setItem(KEY, JSON.stringify(utm));
+          return utm;
+        }
+        return JSON.parse(localStorage.getItem(KEY) || "null");
+      } catch { return null; }
+    }
+    // Захватываем utm_* сразу при загрузке (пока они ещё в адресной строке)
+    try { getUtm(); } catch(_) {}
 
     // РАНЖИРОВАНИЕ
     // ═══════════════════════════════════════════════════════════════
@@ -1500,8 +1562,16 @@
           honeypot: honeypot,                                   // должно быть пустым
           formAgeMs: Date.now() - mountedAtRef.current,         // защита от мгновенного бот-сабмита
           sid: (function(){ try { return getSid(); } catch(_) { return ""; } })(),
+          // Источник рекламы (utm_* с первого захода) — уходит в TG/Sheets
+          utm: (function(){ try { return getUtm(); } catch(_) { return null; } })(),
         };
         const ok = await submitLead(payload);
+        // Конверсия для Метрики/GA4/Pixel — по факту отправки заявки
+        track("lead_submit", {
+          leadType: leadType,
+          totalMin: result.gMin, totalMax: result.gMax,
+          sid: (function(){ try { return getSid(); } catch(_) { return ""; } })(),
+        });
         if (!ok) console.warn("Заявка: бэкенд недоступен, показываем успех (лид уже залогирован на сервере)");
         setSending(false);
         onSubmit(payload);

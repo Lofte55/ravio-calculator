@@ -167,6 +167,12 @@ function validate(b) {
             .map(([k, v]) => [k, Number(v) || 0])) : {},
       sid: str(b.sid, 40),
       leadType: b.leadType === "expert_audit" ? "expert_audit" : "contractor",
+      // Источник рекламы (utm_* с фронта) — только строки, с обрезкой длины
+      utm: (b.utm && typeof b.utm === "object") ? {
+        source: str(b.utm.source, 60), medium: str(b.utm.medium, 60),
+        campaign: str(b.utm.campaign, 80), content: str(b.utm.content, 80),
+        term: str(b.utm.term, 80),
+      } : null,
     },
   };
 }
@@ -228,6 +234,9 @@ async function toTelegram(s) {
     `💰 <b>${money(s.totalMin)} — ${money(s.totalMax)}</b>\n` +
     `   (работы: ${money(s.workTotal)}${s.includeMaterials==="yes"?` · матер: ~${money(s.matCost)}`:""})\n` +
     (audit ? `🔍 Тип: независимая проверка сметы/качества` : `🤝 ${s.selectedProfileName} · совм. ${s.compatibility}%${unavail}`) + `\n\n` +
+    (s.utm && s.utm.source
+      ? `📣 Источник: ${s.utm.source} / ${s.utm.medium || "—"} · ${s.utm.campaign || "—"}\n`
+      : `📣 Источник: прямой заход / органика\n`) +
     `🕐 ${new Date().toLocaleString("ru-RU")}`;
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
@@ -250,6 +259,9 @@ async function toSheets(s) {
     totalMin: money(s.totalMin), totalMax: money(s.totalMax),
     selectedProfileName: s.leadType === "expert_audit"
       ? "🔍 НЕЗАВИСИМАЯ ПРОВЕРКА (эксперт)" : s.selectedProfileName,
+    utmSource: s.utm ? s.utm.source : "",
+    utmMedium: s.utm ? s.utm.medium : "",
+    utmCampaign: s.utm ? s.utm.campaign : "",
   };
   await fetch(url, {
     method: "POST",
