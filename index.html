@@ -2756,6 +2756,14 @@
     // ── Футер — копия футера главного сайта https://ravio.kz/ (Tilda).
     //    Цвета оттуда же: фон #1E2028, заголовки #F5C842, ссылки #9D9FA8,
     //    дисклеймер в блоке #272930. Ссылки ведут на главный сайт. ──
+    // Контакты для модалки «Связаться с нами»
+    const CONTACTS = {
+      phone: "+77083445023",
+      phoneDisplay: "+7 708 344 50 23",
+      whatsapp: "77083445023",   // wa.me — без «+»
+      telegram: "artumikh",       // t.me/artumikh
+    };
+
     const FOOTER_COLS = [
       { title: "Сервис", items: [
         { label: "Главная",       href: "https://ravio.kz/" },
@@ -2768,16 +2776,18 @@
       ]},
       { title: "Помощь", items: [
         { label: "FAQ",                         href: "https://ravio.kz/#faq" },
-        { label: "Связаться с нами",            href: "https://ravio.kz/#faq" },
+        { label: "Связаться с нами",            action: "contact" },
         { label: "Политика конфиденциальности", href: "https://ravio.kz/polyce" },
       ]},
     ];
 
     function SiteFooter() {
       const isMobile = useIsMobile();
+      const [contactOpen, setContactOpen] = useState(false);
       const linkStyle = { display:"block", color:"#9D9FA8", fontSize:14, lineHeight:1.55,
-        textDecoration:"none", marginBottom:10, transition:"color .2s" };
+        textDecoration:"none", marginBottom:10, transition:"color .2s", cursor:"pointer" };
       return (
+        <>
         <footer style={{ background:"#1E2028", fontFamily:T.font, marginTop:0 }}>
           <style>{`.rv-footer a:hover{color:#FFFFFF !important}`}</style>
           <div className="rv-footer" style={{ maxWidth:1160, margin:"0 auto",
@@ -2804,7 +2814,11 @@
                       textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14 }}>
                       {tr(col.title)}
                     </div>
-                    {col.items.map(it => (
+                    {col.items.map(it => it.action === "contact" ? (
+                      <a key={it.label} href="#" style={linkStyle}
+                        onClick={e => { e.preventDefault(); setContactOpen(true);
+                          track("footer_contact_open"); }}>{tr(it.label)}</a>
+                    ) : (
                       <a key={it.label} href={it.href} style={linkStyle}>{tr(it.label)}</a>
                     ))}
                   </div>
@@ -2833,6 +2847,73 @@
             <div style={{ color:"#FFFFFF", fontSize:12 }}>© 2026 RAVIO</div>
           </div>
         </footer>
+
+        {/* ── Модалка «Связаться с нами» ── */}
+        {contactOpen && (
+          <div onClick={() => setContactOpen(false)}
+            style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.55)",
+              display:"flex", alignItems:"center", justifyContent:"center", padding:16,
+              fontFamily:T.font }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background:"#1E2028", borderRadius:16, width:"100%", maxWidth:400,
+                padding: isMobile ? "24px 20px 22px" : "28px 26px 24px", position:"relative",
+                boxShadow:"0 20px 60px rgba(0,0,0,0.5)" }}>
+
+              {/* Крестик */}
+              <button onClick={() => setContactOpen(false)} aria-label="Закрыть"
+                style={{ position:"absolute", top:14, right:14, width:32, height:32,
+                  borderRadius:8, background:"#272930", border:"none", color:"#9D9FA8",
+                  fontSize:18, lineHeight:1, cursor:"pointer" }}>×</button>
+
+              <div style={{ color:"#F5C842", fontSize:12, fontWeight:600, textTransform:"uppercase",
+                letterSpacing:"0.08em", marginBottom:8 }}>{tr("Контакты")}</div>
+              <div style={{ color:"#FFFFFF", fontSize:20, fontWeight:700, marginBottom:6 }}>
+                {tr("Свяжитесь с нами")}
+              </div>
+              <div style={{ color:"#9D9FA8", fontSize:14, lineHeight:1.55, marginBottom:20 }}>
+                {tr("Выберите удобный способ — ответим в течение рабочего дня.")}
+              </div>
+
+              {/* WhatsApp */}
+              <a href={`https://wa.me/${CONTACTS.whatsapp}`} target="_blank" rel="noopener noreferrer"
+                onClick={() => track("footer_contact_whatsapp")}
+                style={{ display:"flex", alignItems:"center", gap:12, textDecoration:"none",
+                  background:"#25D366", borderRadius:12, padding:"13px 16px", marginBottom:10 }}>
+                <span style={{ fontSize:20 }}>💬</span>
+                <div>
+                  <div style={{ color:"#0B3D24", fontSize:12, fontWeight:600 }}>WhatsApp</div>
+                  <div style={{ color:"#08331D", fontSize:15, fontWeight:700 }}>{CONTACTS.phoneDisplay}</div>
+                </div>
+              </a>
+
+              {/* Telegram */}
+              <a href={`https://t.me/${CONTACTS.telegram}`} target="_blank" rel="noopener noreferrer"
+                onClick={() => track("footer_contact_telegram")}
+                style={{ display:"flex", alignItems:"center", gap:12, textDecoration:"none",
+                  background:"#2AABEE", borderRadius:12, padding:"13px 16px", marginBottom:10 }}>
+                <span style={{ fontSize:20 }}>✈️</span>
+                <div>
+                  <div style={{ color:"#063E5C", fontSize:12, fontWeight:600 }}>Telegram</div>
+                  <div style={{ color:"#04304A", fontSize:15, fontWeight:700 }}>@{CONTACTS.telegram}</div>
+                </div>
+              </a>
+
+              {/* Позвонить */}
+              <a href={`tel:${CONTACTS.phone}`}
+                onClick={() => track("footer_contact_call")}
+                style={{ display:"flex", alignItems:"center", gap:12, textDecoration:"none",
+                  background:"#272930", border:"1px solid rgba(157,159,168,0.25)",
+                  borderRadius:12, padding:"13px 16px" }}>
+                <span style={{ fontSize:20 }}>📞</span>
+                <div>
+                  <div style={{ color:"#9D9FA8", fontSize:12, fontWeight:600 }}>{tr("Позвонить")}</div>
+                  <div style={{ color:"#FFFFFF", fontSize:15, fontWeight:700 }}>{CONTACTS.phoneDisplay}</div>
+                </div>
+              </a>
+            </div>
+          </div>
+        )}
+        </>
       );
     }
 
