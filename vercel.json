@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
-    { "source": "/:path*", "destination": "https://ravio.kz/calculator/", "permanent": true }
+    { "source": "/(.*)", "destination": "https://ravio.kz/calculator/", "permanent": true }
   ]
 }
